@@ -1,0 +1,12 @@
+﻿[Unit]
+Description=Start.sh Service with Delay
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 30
+ExecStart=/home/komsky/useless/start.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

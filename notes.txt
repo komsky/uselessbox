@@ -1,0 +1,13 @@
+sudo -E /home/komsky/useless/venv/bin/python box.py
+sudo -E /home/komsky/useless/venv/bin/python toggle_switch_service.py
+
+
+sudo chown root:kmem /dev/mem
+sudo chmod g+rw /dev/mem
+sudo usermod -a -G kmem komsky
+
+source venv/bin/activate
+
+
+sudo systemctl enable toggle_switch.service
+sudo systemctl disable toggle_switch.service

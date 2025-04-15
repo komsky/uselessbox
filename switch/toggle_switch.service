@@ -1,0 +1,14 @@
+[Unit]
+Description=Raspberry Pi Toggle Switch Service
+After=network.target
+
+[Service]
+ExecStart=/home/komsky/useless/venv/bin/python3 /home/komsky/useless/switch/toggle_switch_service.py
+WorkingDirectory=/home/komsky/useless/
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=komsky
+
+[Install]
+WantedBy=multi-user.target
