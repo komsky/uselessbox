@@ -1,0 +1,10 @@
+openai
+dotenv
+webrtcvad
+numpy
+pyaudio
+scipy
+Halo 
+pocketsphinx
+pydub 
+simpleaudio
