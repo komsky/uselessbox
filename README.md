@@ -30,7 +30,7 @@ Start with Linux requirements:
 Install following packages:
     sudo apt-get install portaudio19-dev
 
-Create and activate Pythonenvironment
+Create and activate Python environment
 python3 -m venv venv
 source venv/bin/activate
 

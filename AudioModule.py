@@ -13,7 +13,7 @@ class Audio(object):
     FORMAT = pyaudio.paInt16
     # Network/VAD rate-space
     RATE_PROCESS = 16000
-    CHANNELS = 1
+    CHANNELS = 2
     BLOCKS_PER_SECOND = 50
 
     def __init__(self, callback=None, device=None, input_rate=RATE_PROCESS, file=None):
@@ -29,7 +29,7 @@ class Audio(object):
         self.input_rate = input_rate
         self.sample_rate = self.RATE_PROCESS
         self.block_size = int(self.RATE_PROCESS / float(self.BLOCKS_PER_SECOND))
-        self.block_size_input = int(self.input_rate / float(self.BLOCKS_PER_SECOND))
+        self.block_size_input = int(self.input_rate / float(self.BLOCKS_PER_SECOND)) 
         self.pa = pyaudio.PyAudio()
 
         kwargs = {

@@ -6,8 +6,9 @@ from datetime import datetime
 from halo import Halo
 from dotenv import load_dotenv
 import openai
+from openai import OpenAI
 from voice_activity_detection import VADAudio
-from chat_gpt_client import ChatGptClient
+from chat_gpt_client import ChatGPTClient
 # from fancy_module import FancyInstructions
 # import pvporcupine
 import numpy as np
@@ -21,12 +22,13 @@ import numpy as np
 # from oled.oled_module import OLED_Display
 
 class MainApplication:
-    def __init__(self, args, vad_audio, chat_gpt_client, end_command="exit"):
+    def __init__(self, args, end_command="exit"):
         self.configure_logging()
         self.args = args
-        self.vad_audio = vad_audio
+        self.vad_audio = None
         # self.fancy = fancy
-        self.chat_gpt_client = chat_gpt_client
+        self.chat_gpt_client =  ChatGPTClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
+    
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
@@ -36,6 +38,7 @@ class MainApplication:
         # self.wled = wled
         self.end_command = end_command
         # self.oled = OLED_Display()
+        self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         logging.debug("MainApplication initialized")
 
     def configure_logging(self):
@@ -74,6 +77,11 @@ class MainApplication:
         # await self.wled.listening()
         wav_data = bytearray()
         vad = VADAudio(aggressiveness=self.args.vad_aggressiveness, device=self.args.device, input_rate=self.args.rate, file=self.args.file)
+        #debug
+        data = vad.read()               # or read_resampled()
+        arr  = np.frombuffer(data, np.int16)
+        print("raw int16 samples:", arr[:20])
+        #debug
         frames = vad.vad_collector()
         for frame in frames:
             if frame is not None:
@@ -89,10 +97,17 @@ class MainApplication:
         # await self.wled.kit()
         date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
         saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
-        self.vad_audio.write_wav(saved_file, wav_data)
+        vad.write_wav(saved_file, wav_data)
         with open(saved_file, "rb") as audio_file:
-            api_response = openai.Audio.transcribe("whisper-1", audio_file )
-            recognized_text = api_response.text.lower()
+            api_response = self.openAiClient.audio.transcriptions.create(
+                file=audio_file,       # your audio file handle
+                model="whisper-1",     # the Whisper model
+                language='pl',         # auto-detect if you omit this
+                temperature=0,         # deterministic output
+                response_format="text" # you?ll get resp.text back
+            )
+
+            recognized_text = api_response;
             print(f"You said: {recognized_text}")            
             
             if self.end_command in recognized_text:
@@ -104,10 +119,10 @@ class MainApplication:
             #     print("Detected unusual language, not responding")
             #     return True
 
-            elif not api_response.text.strip() == "":
+            elif not api_response.strip() == "":
                 # self.oled.write_smart_split("Thinking...")
-                arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response.text)
-                print(f"ChatGPT: {arnold_says}")
+                arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
+                # print(f"ChatGPT: {arnold_says}")
                 # self.oled.write_smart_split("Speaking...")
                 # await self.wled.speaking()
                 # self.speak_module.speak(arnold_says, language)
@@ -128,25 +143,25 @@ if __name__ == '__main__':
     parser.add_argument('--nospinner', action='store_true', help="Disable spinner")
     parser.add_argument('-w', '--savewav', default=os.path.join(os.getcwd(),'audio/saved/'), help="Save .wav files of utterances to given directory")
     parser.add_argument('-f', '--file', help="Read from .wav file instead of microphone")
-    parser.add_argument('-d', '--device', type=int, default=None, help="Device input index (Int) as listed by pyaudio.PyAudio.get_device_info_by_index(). If not provided, falls back to PyAudio.get_default_device().")
+    parser.add_argument('-d', '--device', type=int, default=1, help="Device input index (Int) as listed by pyaudio.PyAudio.get_device_info_by_index(). If not provided, falls back to PyAudio.get_default_device().")
     parser.add_argument('-r', '--rate', type=int, default=16000, help="Input device sample rate. Default: 16000. Your device may require 44100.")
     args = parser.parse_args()
     if args.savewav:
         os.makedirs(args.savewav, exist_ok=True)
 
-    vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
+    # vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
     # wled = WledProxy()
 
     knight_rider_audio = os.path.join(current_folder, 'Audio/Effects/knight_rider.mp3')
     yes_master_audio = os.path.join(current_folder, 'Audio/Effects/yes_master.wav')
 
     # fancy = FancyInstructions(wled, knight_rider_audio, yes_master_audio)
-    chat_gpt_client = ChatGptClient(api_key=os.getenv("CHATGPT_API_KEY"), model_type=os.getenv("GPT_MODEL_TYPE"), chat_history_filename="chatHistory.json")
-    
+
     api_key = os.getenv("CHATGPT_API_KEY")
     openai.api_key = api_key
     end_command = "exit"
-    app = MainApplication(args, vad_audio, chat_gpt_client, end_command)
+    app = MainApplication(args, end_command)
+    app.listen_for_command()
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(app.run())
     

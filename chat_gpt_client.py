@@ -1,49 +1,60 @@
-import openai
+from openai import OpenAI
 import os
 import json
 from dotenv import load_dotenv
 
-class ChatGptClient:
-    def __init__(self, api_key, model_type, chat_history_filename='chatHistory.json'):
-        self.api_key = api_key
-        self.model_type = model_type
-        self.chat_history_filename = chat_history_filename
-        openai.api_key = self.api_key
+class ChatGPTClient:
+    def __init__(self, api_key: str, model: str, history_file: str = "chatHistory.json"):
+        # initialize the new client; picks up your key directly
+        self.client = OpenAI(api_key=api_key)
+        self.model = model
+        self.history_file = history_file
 
-    def call_chatgpt(self, messages):
-        response = openai.ChatCompletion.create(model=self.model_type, messages=messages)
-        return response.choices[0].message.content.strip()
+    def list_models(self) -> list[str]:
+        # list available models
+        resp = self.client.models.list()
+        return [m.id for m in resp.data]  # resp.data is a list of Model objects :contentReference[oaicite:0]{index=0}
 
-    def list_models(self):
-        return openai.Model.list()
+    def call_chatgpt(self, messages: list[dict]) -> str:
+        # new chat completion call
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages
+        )
+        return completion.choices[0].message.content.strip()  # same structure, but new method :contentReference[oaicite:1]{index=1}
 
-    def call_chatgpt_with_history(self, prompt,retain_history=True):
-        with open(self.chat_history_filename, 'r') as json_file:
-            messages = json.load(json_file)
+    def call_chatgpt_with_history(self, prompt: str, retain_history: bool = True) -> str:
+        # load existing history or start fresh
+        try:
+            with open(self.history_file, "r") as f:
+                messages = json.load(f)
+        except FileNotFoundError:
+            messages = []
 
-        request = {"role": "user", "content": prompt}
-        messages.append(request)
-
-        response = self.call_chatgpt(messages)
+        # append user prompt
+        messages.append({"role": "user", "content": prompt})
+        # get assistant response
+        response_text = self.call_chatgpt(messages)
 
         if retain_history:
-            new_entry = {"role": "assistant", "content": response}
-            messages.append(new_entry)
+            messages.append({"role": "assistant", "content": response_text})
+            with open(self.history_file, "w") as f:
+                json.dump(messages, f, indent=2)
 
-            with open(self.chat_history_filename, 'w') as json_file:
-                json.dump(messages, json_file)
-
-        print(response)
-        return response
-
+        print(response_text)
+        return response_text
 
 if __name__ == "__main__":
     load_dotenv()
-    api_key = os.getenv("CHATGPT_API_KEY")
-    model_type = os.getenv("MODEL_TYPE")
-    
-    chat_gpt_client = ChatGptClient(api_key, model_type)
+    # support either env var name
+    api_key = os.getenv("CHATGPT_API_KEY") or os.getenv("OPENAI_API_KEY")
+    model    = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
+
+    client = ChatGPTClient(api_key, model)
+
+    # show available models
+    print("Available models:", client.list_models())
+
+    # sample run
     prompt = "What are the benefits of exercise?"
-    response_text = chat_gpt_client.call_chatgpt(prompt)
-    print("Prompt: ", prompt)
-    print("Response: ", response_text)
+    client.call_chatgpt_with_history(prompt)
