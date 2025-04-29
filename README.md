@@ -18,12 +18,11 @@ Initially it will work on a Raspberry Pi Zero 2 W, but I plan to split AI featur
 
 ## ReSpeaker drivers
 You'll need drivers for ReSpeaker before you can utilize it.
-git clone https://github.com/respeaker/seeed-voicecard.git
-cd seeed-voicecard
-sudo ./install.sh
+Make sure you follow installation guidelines for you OS version. This can cause trouble and you might end up wiping your SD card several times, before you have it running, so make sure you can arecrd and aplay sounds using this card, before anything else.
+https://wiki.seeedstudio.com/respeaker_2_mics_pi_hat_raspberry_v2/
 
 ## Software
-- Raspberry Pi OS Lite - we will use the Legacy 32 -bit version because Adafruit I2S 3W Amplifier is not supported on 64-bit OS. I've tested the drivers against the latest kernel (as of 04/2025) and it didn't work. Fallback to 32-bit OS did the trick.
+- Raspberry Pi OS Lite
 - Python 3.7 or higher
 - All python dependencies are listed in requirements.txt
 
@@ -31,12 +30,12 @@ Start with Linux requirements:
 Install following packages:
     sudo apt-get install portaudio19-dev
 
-Then, upgrade pip to latest version
-pip install --upgrade pip setuptools wheel
-
 Create and activate Pythonenvironment
 python3 -m venv venv
 source venv/bin/activate
+
+Then, upgrade pip to latest version
+pip install --upgrade pip setuptools wheel
 
 Now, run 
 pip install -r requirements.txt
