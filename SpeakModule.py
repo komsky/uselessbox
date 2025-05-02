@@ -59,8 +59,6 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
                         else:
                             stereo = np.column_stack((np.zeros_like(pcm16), pcm16))
                                 # play fast on the fly?
-                        print("stereo.shape =", stereo.shape)
-                        print("first 4 samples L/R:", stereo[:4])
                         stream.write(stereo)
                         # ?and save a true?speed WAV
                         wf.writeframes(stereo.astype(np.int16).tobytes())
