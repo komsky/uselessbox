@@ -5,7 +5,7 @@ import traceback
 
 load_dotenv()
 _BASE_RATE = 24_000             # native sample rate
-SPEED = 2                     # 30% faster
+SPEED = 1.3                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
 
@@ -23,7 +23,7 @@ def _open_wav(ts: str):
     wf = wave.open(f"responses/{ts}.wav", "wb")
     wf.setnchannels(2)           # stereo
     wf.setsampwidth(2)           # 16-bit
-    #wf.setframerate(_OUT_RATE)   # speed-up via header
+    wf.setframerate(_BASE_RATE)   # speed-up via header
     return wf
 
 async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_GAIN):
