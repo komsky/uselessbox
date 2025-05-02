@@ -24,7 +24,7 @@ def _open_wav(ts: str):
     wf = wave.open(f"responses/{ts}.wav", "wb")
     wf.setnchannels(2)           # stereo
     wf.setsampwidth(2)           # 16-bit
-    wf.setframerate(_BASE_RATE)   # speed-up via header
+    wf.setframerate(_OUT_RATE)   # speed-up via header
     return wf
 
 async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_GAIN):
