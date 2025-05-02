@@ -9,7 +9,7 @@ SPEED = 1.3                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
 
-client = AsyncOpenAI()
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 STYLE = (
     "Tone: witty, dry sarcasm, cocky confidence.\n"
     "Emotion: amused contempt.\n"
