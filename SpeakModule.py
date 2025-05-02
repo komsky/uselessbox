@@ -8,7 +8,7 @@ _BASE_RATE = 24_000             # native sample rate
 SPEED = 1.9                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
-sd.default.device = (None, 'hw:1,0')
+sd.default.device = (None, 'plughw:1,0')
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 STYLE = (
