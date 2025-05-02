@@ -5,7 +5,7 @@ import traceback
 
 load_dotenv()
 _BASE_RATE = 24_000             # native sample rate
-SPEED = 1.3                     # 30% faster
+SPEED = 1.9                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
 
@@ -58,6 +58,8 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
                         else:
                             stereo = np.column_stack((np.zeros_like(pcm16), pcm16))
                                 # play fast on the fly?
+                        print("stereo.shape =", stereo.shape)
+                        print("first 4 samples L/R:", stereo[:4])
                         stream.write(stereo)
                         # ?and save a true?speed WAV
                         wf.writeframes(stereo.astype(np.int16).tobytes())
