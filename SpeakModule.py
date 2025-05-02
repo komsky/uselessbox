@@ -1,6 +1,7 @@
 import asyncio, os, wave, time, numpy as np, sounddevice as sd
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+import traceback
 
 load_dotenv()
 _BASE_RATE = 24_000             # native sample rate
@@ -28,47 +29,46 @@ def _open_wav(ts: str):
 async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_GAIN):
     _ensure_dir()
     ts = time.strftime("%Y%m%d-%H%M%S")
+    print(f"[{ts}] Speaking ({'L' if left else 'R'}) → {text!r} via “{voice}”")
     wf = _open_wav(ts)
-
     buf = bytearray()
-    with sd.OutputStream(samplerate=_OUT_RATE, channels=2, dtype="int16") as stream:
-        async with client.audio.speech.with_streaming_response.create(
-            model="gpt-4o-mini-tts",
-            voice=voice,
-            instructions=STYLE,
-            input=text,
-            response_format="pcm"
-        ) as resp:
-            async for chunk in resp.iter_bytes():
-                buf.extend(chunk)
-                n = (len(buf)//2)*2
-                if n == 0:
-                    continue
-                frame_bytes = buf[:n]; buf = buf[n:]
-                wf.writeframes(frame_bytes)
-
-                # convert to int32 so we can multiply without overflow
-                pcm16 = np.frombuffer(frame_bytes, dtype=np.int16).astype(np.int32)
-                # apply gain and clip back into int16 range
-                pcm16 = np.clip(pcm16 * gain, -32768, 32767).astype(np.int16)
-                # build stereo: [L, R]
-                if left:
-                    stereo = np.column_stack((pcm16, np.zeros_like(pcm16)))
-                else:
-                    stereo = np.column_stack((np.zeros_like(pcm16), pcm16))
-                stream.write(stereo)
-
-    wf.close()
-    print(f"Saved ↯ responses/{ts}.wav")
-
+    sd.device = (None,2)
+    try:
+        with sd.OutputStream(samplerate=_OUT_RATE, channels=2, dtype="int16") as stream:
+              async with client.audio.speech.with_streaming_response.create(
+				model="gpt-4o-mini-tts",
+  				voice=voice,
+	  			instructions=STYLE,
+		  		input=text,
+			  	response_format="pcm"
+            ) as resp:
+                async for chunk in resp.iter_bytes():
+                        buf.extend(chunk)
+                        n = (len(buf)//2)*2
+                        if n == 0:
+                                continue
+                        frame_bytes = buf[:n]; buf = buf[n:]
+                        wf.writeframes(frame_bytes)
+                        pcm16 = np.frombuffer(frame_bytes, dtype=np.int16).astype(np.int32)
+                        pcm16 = np.clip(pcm16 * gain, -32768, 32767).astype(np.int16)
+                        #build stereo: [L, R]
+                        if left:
+                            stereo = np.column_stack((pcm16, np.zeros_like(pcm16)))
+                        else:
+                            stereo = np.column_stack((np.zeros_like(pcm16), pcm16))
+                        stream.write(stereo)
+                wf.close()
+                print(f"Saved as responses/{ts}.wav")
+    except Exception:
+          print(f"[{ts}] Playback or save failed!")
+          traceback.print_exc()
 async def speak_female(text: str):
-    """Left-channel ‘coral’ (female) at 1.3× speed."""
+    """Left-channel coral (female) at 1.3 speed."""
     await _speak_chan(text, voice="coral", left=True)
 
 async def speak_male(text: str):
-    """Right-channel ‘ash’ (male) at 1.3× speed."""
+    """Right-channel ash (male) at 1.3 speed."""
     await _speak_chan(text, voice="ash", left=False)
-
 
 # test CLI
 if __name__ == "__main__":
