@@ -5,8 +5,9 @@ import traceback
 
 load_dotenv()
 _BASE_RATE = 24_000             # native sample rate
-SPEED = 1.9                     # 30% faster
-_OUT_RATE = int(_BASE_RATE * SPEED)
+SPEED = 1.9                     # 90% faster
+HW_RATE = 48_000             # hardware sample rate
+_OUT_RATE = int(HW_RATE)
 DEFAULT_GAIN = 2.0
 sd.default.device = (None, 0) 
 
