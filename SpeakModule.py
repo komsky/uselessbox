@@ -5,7 +5,7 @@ import traceback
 
 load_dotenv()
 _BASE_RATE = 24_000             # native sample rate
-SPEED = 1.9                     # 30% faster
+SPEED = 1.3                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
 
@@ -47,8 +47,9 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
                         n = (len(buf)//2)*2
                         if n == 0:
                                 continue
-                        frame_bytes = buf[:n]; buf = buf[n:]
-                        wf.writeframes(stereo.astype(np.int16).tobytes())
+                        frame_bytes = buf[:n]
+                        buf = buf[n:]
+                        # decode and apply gain
                         pcm16 = np.frombuffer(frame_bytes, dtype=np.int16).astype(np.int32)
                         pcm16 = np.clip(pcm16 * gain, -32768, 32767).astype(np.int16)
                         #build stereo: [L, R]
@@ -56,7 +57,10 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
                             stereo = np.column_stack((pcm16, np.zeros_like(pcm16)))
                         else:
                             stereo = np.column_stack((np.zeros_like(pcm16), pcm16))
+                                # play fast on the fly?
                         stream.write(stereo)
+                        # ?and save a true?speed WAV
+                        wf.writeframes(stereo.astype(np.int16).tobytes())
                 wf.close()
                 print(f"Saved as responses/{ts}.wav")
     except Exception:
