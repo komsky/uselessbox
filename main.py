@@ -13,13 +13,20 @@ from chat_gpt_client import ChatGPTClient
 # import pvporcupine
 import numpy as np
 # from wled_proxy import WledProxy
-# from speak_module import SpeakModule
+from SpeakModule import SpeakModule
 # import asyncio
 # from langdetect import detect
 # libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'oled')
 # if os.path.exists(libdir):
 #     sys.path.append(libdir)
 # from oled.oled_module import OLED_Display
+import shutil
+import time
+from HandServo import HandServo
+from TopServo import TopServo
+import requests
+import wled
+import random
 
 class MainApplication:
     def __init__(self, args, end_command="exit"):
@@ -41,6 +48,19 @@ class MainApplication:
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         logging.debug("MainApplication initialized")
 
+    def resetChatHistory(src='chatHistory.starter.json', dst='chatHistory.json'):
+        try:
+            shutil.copyfile(src, dst)
+            print(f"Successfully overwritten '{dst}' with '{src}'")
+        except FileNotFoundError:
+            print(f"Error: Source file '{src}' not found.")
+            sys.exit(1)
+        except PermissionError:
+            print(f"Error: Permission denied when writing to '{dst}'.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            sys.exit(1)
     def configure_logging(self):
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
@@ -152,16 +172,18 @@ if __name__ == '__main__':
     # vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
     # wled = WledProxy()
 
-    knight_rider_audio = os.path.join(current_folder, 'Audio/Effects/knight_rider.mp3')
-    yes_master_audio = os.path.join(current_folder, 'Audio/Effects/yes_master.wav')
+    # knight_rider_audio = os.path.join(current_folder, 'Audio/Effects/knight_rider.mp3')
+    # yes_master_audio = os.path.join(current_folder, 'Audio/Effects/yes_master.wav')
 
     # fancy = FancyInstructions(wled, knight_rider_audio, yes_master_audio)
-
+    
     api_key = os.getenv("CHATGPT_API_KEY")
     openai.api_key = api_key
     end_command = "exit"
     app = MainApplication(args, end_command)
-    app.listen_for_command()
+    app.resetChatHistory()
+    app.run()
+    
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(app.run())
     
