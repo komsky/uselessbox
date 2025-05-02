@@ -8,6 +8,7 @@ _BASE_RATE = 24_000             # native sample rate
 SPEED = 1.9                     # 30% faster
 _OUT_RATE = int(_BASE_RATE * SPEED)
 DEFAULT_GAIN = 2.0
+sd.default.device = (None, 1)
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 STYLE = (
@@ -32,7 +33,6 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
     print(f"[{ts}] Speaking ({'L' if left else 'R'}) → {text!r} via “{voice}”")
     wf = _open_wav(ts)
     buf = bytearray()
-    sd.device = (None,2)
     try:
         with sd.OutputStream(samplerate=_OUT_RATE, channels=2, dtype="int16") as stream:
               async with client.audio.speech.with_streaming_response.create(
