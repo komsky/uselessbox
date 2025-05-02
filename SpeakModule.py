@@ -48,7 +48,7 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
                         if n == 0:
                                 continue
                         frame_bytes = buf[:n]; buf = buf[n:]
-                        wf.writeframes(frame_bytes)
+                        wf.writeframes(stereo.astype(np.int16).tobytes())
                         pcm16 = np.frombuffer(frame_bytes, dtype=np.int16).astype(np.int32)
                         pcm16 = np.clip(pcm16 * gain, -32768, 32767).astype(np.int16)
                         #build stereo: [L, R]
