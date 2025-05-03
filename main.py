@@ -28,9 +28,13 @@ import requests
 import wled
 import random
 
+EVENTS_URL = "http://127.0.0.1:5000/events"
+
 class MainApplication:
-    def __init__(self, args, end_command="exit"):
+    def __init__(self, args):
         self.configure_logging()
+        
+        logging.debug("Logging configured.Starting Main Application")
         self.args = args
         self.vad_audio = None
         # self.fancy = fancy
@@ -43,24 +47,32 @@ class MainApplication:
         # self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
         # self.speak_module = SpeakModule(os.getenv("AZURE_KEY"), os.getenv("AZURE_REGION"))
         # self.wled = wled
-        self.end_command = end_command
+        self.handServo = HandServo(gpio_pin=22)
+        self.topServo = TopServo(servo_pin=22)
         # self.oled = OLED_Display()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        app.resetChatHistory()
         logging.debug("MainApplication initialized")
 
     def resetChatHistory(src='chatHistory.starter.json', dst='chatHistory.json'):
+        logging.debug("Resetting chat history")
+        if not os.path.exists(src):
+            logging.debug(f"Error: Starter chat history '{src}' does not exist.")
+            sys.exit(1)
         try:
             shutil.copyfile(src, dst)
-            print(f"Successfully overwritten '{dst}' with '{src}'")
+            logging.debug(f"Successfully overwritten '{dst}' with '{src}'")
         except FileNotFoundError:
-            print(f"Error: Source file '{src}' not found.")
+            logging.debug(f"Error: Source file '{src}' not found.")
             sys.exit(1)
         except PermissionError:
-            print(f"Error: Permission denied when writing to '{dst}'.")
+            logging.debug(f"Error: Permission denied when writing to '{dst}'.")
             sys.exit(1)
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            logging.debug(f"An unexpected error occurred: {e}")
             sys.exit(1)
+
     def configure_logging(self):
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
@@ -151,7 +163,43 @@ class MainApplication:
         # await self.wled.stop()
         return True
     
+    def subscribe_toggle(self):
+        while True:
+            try:
+                print("Connecting to events endpoint at", EVENTS_URL)
+                with requests.get(EVENTS_URL, stream=True) as r:
+                    for line in r.iter_lines(decode_unicode=True):
+                        if line and line.startswith("data:"):
+                            data = line.replace("data:", "").strip()
+                            print("Received event:", data)
+
+                            if data == "ON":
+                                wled.on()
+                                time.sleep(1)
+                                self.topServo.arc(50)
+                                time.sleep(1)
+                                #wled.angry()  # example: move servo to 90 degrees
+                                self.handServo.angle(80)
+                                time.sleep(0.5)
+                                self.handServo.zero()
+
+                            elif data == "OFF":
+                                wled.off()
+                                self.topServo.zero()   # reset servo to 0 degrees
+                                time.sleep(1)
+                                self.topServo.arc(30)
+                                self.handServo.angle(20)
+                                time.sleep(0.5)
+                                self.handServo.zero()
+                                time.sleep(1.5)
+                                self.topServo.zero()
+
+            except Exception as e:
+                print("Error while subscribing to toggle events:", e)
+                time.sleep(5)  # retry after a delay
+
     def run(self):
+        self.subscribe_toggle()
         self.listen_for_command()
                     
 
@@ -169,19 +217,7 @@ if __name__ == '__main__':
     if args.savewav:
         os.makedirs(args.savewav, exist_ok=True)
 
-    # vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
-    # wled = WledProxy()
-
-    # knight_rider_audio = os.path.join(current_folder, 'Audio/Effects/knight_rider.mp3')
-    # yes_master_audio = os.path.join(current_folder, 'Audio/Effects/yes_master.wav')
-
-    # fancy = FancyInstructions(wled, knight_rider_audio, yes_master_audio)
-    
-    api_key = os.getenv("CHATGPT_API_KEY")
-    openai.api_key = api_key
-    end_command = "exit"
-    app = MainApplication(args, end_command)
-    app.resetChatHistory()
+    app = MainApplication(args)
     app.run()
     
     # loop = asyncio.get_event_loop()
