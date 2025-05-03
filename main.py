@@ -13,7 +13,7 @@ from chat_gpt_client import ChatGPTClient
 # import pvporcupine
 import numpy as np
 # from wled_proxy import WledProxy
-from SpeakModule import SpeakModule
+import SpeakModule
 # import asyncio
 # from langdetect import detect
 # libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'oled')
@@ -25,7 +25,7 @@ import time
 from HandServo import HandServo
 from TopServo import TopServo
 import requests
-import wled
+import wsled
 import random
 
 EVENTS_URL = "http://127.0.0.1:5000/events"
@@ -174,7 +174,7 @@ class MainApplication:
                             print("Received event:", data)
 
                             if data == "ON":
-                                wled.on()
+                                wsled.on()
                                 time.sleep(1)
                                 self.topServo.arc(50)
                                 time.sleep(1)
@@ -184,7 +184,7 @@ class MainApplication:
                                 self.handServo.zero()
 
                             elif data == "OFF":
-                                wled.off()
+                                wsled.off()
                                 self.topServo.zero()   # reset servo to 0 degrees
                                 time.sleep(1)
                                 self.topServo.arc(30)

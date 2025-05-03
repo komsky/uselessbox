@@ -8,3 +8,6 @@ Halo
 pocketsphinx
 pydub 
 simpleaudio
+gpiozero
+pigpio
+requests

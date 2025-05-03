@@ -1,54 +1,56 @@
-import pigpio
 import time
+from gpiozero import AngularServo
+# If you still want to use pigpio under the hood:
+# from gpiozero.pins.pigpio import PiGPIOFactory
+# factory = PiGPIOFactory()
 
 class HandServo:
-    def __init__(self, gpio_pin):
+    def __init__(self, gpio_pin, 
+                 min_pulse_width=0.0005, max_pulse_width=0.0025,
+                 pulse_duration=0.5):
+        """
+        gpio_pin: BCM pin number
+        min_pulse_width: seconds corresponding to 0ï¿½
+        max_pulse_width: seconds corresponding to 180ï¿½
+        pulse_duration: how long to drive the servo before ?releasing?
+        """
+        # To use pigpio as backend, add: , pin_factory=factory
+        self.servo = AngularServo(
+            gpio_pin,
+            min_angle=0, max_angle=180,
+            min_pulse_width=min_pulse_width,
+            max_pulse_width=max_pulse_width
+        )
+        self._duration = pulse_duration
+        self._inited = True
 
-        self.gpio_pin = gpio_pin
-        self.pi = pigpio.pi()
-        if not self.pi.connected:
-            raise IOError("Could not connect to pigpio daemon. Make sure pigpiod is running.")
-        self.pi.set_mode(gpio_pin, pigpio.OUTPUT)
-        
-        # Define servo pulse widths in microseconds (adjust based on your servo's calibration)
-        self.pw_zero = 500    # Position for 0° (default)
-        self.pw_45 = 1000     # Position for 45°
-        self.pw_90 = 1500     # Position for 90°
+    def _check(self):
+        if not self._inited:
+            raise RuntimeError("Servo not initialized. Create a new HandServo instance.")
 
-        self.min_pulse = 500    # 0° -> 500µs
-        self.max_pulse = 2500   # 180° -> 2500µs
-        self.initiated = True
-
-    def _check_initiated(self):
-        if not self.initiated:
-            raise Exception("Servo not initiated. Create a new instance of HandServo to initialize.")
-
-    def _set_pulse_and_stop(self, pulse):
-        self.pi.set_servo_pulsewidth(self.gpio_pin, pulse)
-        time.sleep(0.5)  # Wait for servo movement
-        self.pi.set_servo_pulsewidth(self.gpio_pin, 0)  # Stop the pulse
+    def _move(self, angle: float):
+        self._check()
+        self.servo.angle = angle
+        time.sleep(self._duration)
+        # stop sending pulses (lets servo ?relax?)
+        self.servo.angle = None
 
     def zero(self):
-        self._check_initiated()
-        self._set_pulse_and_stop(self.pw_zero)
+        self._move(0)
 
     def angle45(self):
-        self._check_initiated()
-        self._set_pulse_and_stop(self.pw_45)
+        self._move(45)
 
     def angle90(self):
-        self._check_initiated()
-        self._set_pulse_and_stop(self.pw_90)
-        
+        self._move(90)
+
     def angle(self, angle: int):
-        self._check_initiated()
         if not (0 <= angle <= 180):
             raise ValueError("Angle must be between 0 and 180")
-        pulse = self.min_pulse + (angle / 180.0) * (self.max_pulse - self.min_pulse)
-        self._set_pulse_and_stop(pulse)
+        self._move(angle)
 
     def cleanup(self):
-        if self.pi is not None:
-            self.pi.set_servo_pulsewidth(self.gpio_pin, 0)
-            self.pi.stop()
-            self.initiated = False
+        if self._inited:
+            self.servo.angle = None
+            self.servo.close()
+            self._inited = False
