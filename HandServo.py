@@ -55,8 +55,8 @@ class TopServo:
 def main():
     servo = TopServo()
     try:
-        servo.arc(25)
-        sleep(2)
+        servo.arc(55)
+        sleep(0.2)
 
         print("Resetting to zero and detaching.")
         servo.zero()
