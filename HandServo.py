@@ -6,7 +6,7 @@ from time import sleep
 class TopServo:
     def __init__(
         self,
-        servo_pin: int = 27,   # BCM pin
+        servo_pin: int = 22,   # BCM pin
         min_angle: float = 0,
         max_angle: float = 180,
         min_pulse_width: float = 0.0005,
