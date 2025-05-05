@@ -44,12 +44,17 @@ def play_random_greeting():
     """
     Play a random greeting sound.
     """
-    # List of greeting sounds
-    greetings = [
-        "/home/komsky/uselessbox/audio/Effects/greeting1.mp3",
-        "/home/komsky/uselessbox/audio/Effects/greeting2.mp3",
-        "/home/komsky/uselessbox/audio/Effects/greeting3.mp3",
-    ]
+    # Read and list greeting sounds from /home/komsky/uselessbox/audio/Greetings/
+    files = os.listdir("/home/komsky/uselessbox/audio/Greetings/")
+    # Filter for .wav files
+    greetings = [f for f in files if f.endswith('.wav')]
+    # Check if there are any greeting files
+    if not greetings:
+        print("No greeting sounds found.")
+        return
+    # Construct full paths for each greeting sound
+    greetings = [os.path.join("/home/komsky/uselessbox/audio/Greetings/", f) for f in greetings]
+    
     # Play a random greeting sound
     play_sound(random.choice(greetings))
 # Example usage     
