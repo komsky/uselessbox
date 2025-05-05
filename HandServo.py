@@ -43,9 +43,19 @@ class TopServo:
         sleep(0.5)
         servo.detach()
 
+    def turnOffToggleAndBack(self) -> None:
+        self.arc(55)
+        sleep(0.2)
+        sleep.zero()
+        
+    def wiggleHand(self) -> None:
+        """Move to min_angle and detach."""
+        self.arc(20)
+    
     def zero(self) -> None:
         """Move to min_angle and detach."""
         self.arc(self.min_angle)
+        sleep(0.2)
 
     def cleanup(self) -> None:
         """Release the GPIO pin and stop PWM."""

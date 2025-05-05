@@ -43,6 +43,13 @@ class TopServo:
         sleep(0.5)
         servo.detach()
 
+    def up(self) -> None:
+        """Opening the box"""
+        self.arc(60)    
+    def down(self) -> None:
+        """Closing the box"""
+        self.zero()
+
     def zero(self) -> None:
         """Move to min_angle and detach."""
         self.arc(self.min_angle)
