@@ -54,7 +54,7 @@ def play_random_greeting():
         return
     # Construct full paths for each greeting sound
     greetings = [os.path.join("/home/komsky/uselessbox/audio/Greetings/", f) for f in greetings]
-    
+
     # Play a random greeting sound
     play_sound(random.choice(greetings))
 # Example usage     
@@ -63,3 +63,4 @@ if __name__ == "__main__":
     play_predefined_sounds("yes_master")
     # Play a custom sound file
     play_sound("/home/komsky/uselessbox/audio/Soundboard/Arnold_Terminator/arnold_terminator.mp3")
+    play_random_greeting()
