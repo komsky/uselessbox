@@ -9,6 +9,7 @@ import openai
 from openai import OpenAI
 from voice_activity_detection import VADAudio
 from chat_gpt_client import ChatGPTClient
+import sounds
 # from fancy_module import FancyInstructions
 # import pvporcupine
 import numpy as np
@@ -176,7 +177,8 @@ class MainApplication:
                             if data == "ON":
                                 wsled.on()
                                 time.sleep(1)
-                                self.topServo.arc(50)
+                                sounds.play_random_greeting()
+                                self.topServo.up()   # move top servo up
                                 time.sleep(1)
                                 #wled.angry()  # example: move servo to 90 degrees
                                 self.handServo.angle(80)

@@ -20,4 +20,4 @@ def convert_mp3_to_wav(root_dir):
                     print(f"Failed to convert: {mp3_path}")
 
 if __name__ == "__main__":
-    convert_mp3_to_wav("/home/komsky/uselessbox/audio/")
+    convert_mp3_to_wav("/home/komsky/UselessBox/uselessbox/audio/")
