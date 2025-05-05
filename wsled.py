@@ -58,3 +58,6 @@ def color_wipe(color, wait_ms=50):
             time.sleep(1)
     except KeyboardInterrupt:
         color_wipe(Color(0, 0, 0), 10)
+
+if __name__ == "__main__":
+    color_wipe()
