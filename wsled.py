@@ -60,4 +60,4 @@ def color_wipe(color, wait_ms=50):
         color_wipe(Color(0, 0, 0), 10)
 
 if __name__ == "__main__":
-    color_wipe()
+    color_wipe(Color(64, 64, 64))
