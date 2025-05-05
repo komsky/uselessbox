@@ -57,5 +57,5 @@ Thumbs.db
 # Environment variables
 .env
 # Any audio files
-*.wav
-*.mp3
+audio/saved/*
+responses/*
