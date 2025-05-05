@@ -44,8 +44,9 @@ def color_wipe(color, wait_ms=50):
     for i in range(_strip.numPixels()):
         _strip.setPixelColor(i, color)
         _strip.show()
-        time.sleep(wait_ms / 1000.0)
 
+def color_loop():
+    _init_strip()
     try:
         while True:
             color_wipe(Color(255, 0, 0))  # Red
@@ -58,8 +59,8 @@ def color_wipe(color, wait_ms=50):
             print('Blue')
             time.sleep(1)
     except KeyboardInterrupt:
-        color_wipe(Color(0, 0, 0), 10)
+        print("Exiting color wipe loop.")
+        off()
 
 if __name__ == "__main__":
-
-    color_wipe(Color(64, 64, 64))
+    color_loop()
