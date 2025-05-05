@@ -40,6 +40,7 @@ def down():
     off()
 
 def color_wipe(color, wait_ms=50):
+    _init_strip()
     for i in range(_strip.numPixels()):
         _strip.setPixelColor(i, color)
         _strip.show()
@@ -60,4 +61,5 @@ def color_wipe(color, wait_ms=50):
         color_wipe(Color(0, 0, 0), 10)
 
 if __name__ == "__main__":
+
     color_wipe(Color(64, 64, 64))
