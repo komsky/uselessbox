@@ -30,7 +30,7 @@ https://wiki.seeedstudio.com/respeaker_2_mics_pi_hat_raspberry_v2/ ()
 Start with Linux requirements:
 Install following packages:
 ```bash
-sudo apt-get install portaudio19-dev python3-dev gfortran
+sudo apt-get install portaudio19-dev python3-dev gfortran libopenblas-dev
 ```
 
 Create and activate Python environment

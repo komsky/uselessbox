@@ -1,9 +1,9 @@
 openai
 dotenv
 webrtcvad
+scipy --prefer-binary
 numpy
 pyaudio
-scipy
 Halo 
 pocketsphinx
 pydub 
