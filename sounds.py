@@ -12,7 +12,7 @@ core_path = os.path.dirname(os.path.abspath(__file__))
 # Dictionary to map sound names to their file paths
 sound_files = {
     "how_can_i_help": os.path.join(core_path, "audio/Effects/how_can_i_help_master.wav"),
-    "knight_rider": os.path.join(core_path, "audio/Effects/knight_rider.mp3"),
+    "knight_rider": os.path.join(core_path, "audio/Effects/knight_rider.wav"),
     "yes_master": os.path.join(core_path, "audio/Effects/yes_master.wav")
 }
 # Function to play a sound file

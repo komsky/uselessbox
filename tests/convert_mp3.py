@@ -8,12 +8,15 @@ def convert_mp3_to_wav(root_dir):
         for filename in filenames:
             if filename.lower().endswith('.mp3'):
                 mp3_path = os.path.join(dirpath, filename)
-                wav_path = os.path.splitext(mp3_path)[0] + '_16k.wav'
-
+                wav_path = os.path.splitext(mp3_path)[0] + '.wav'
                 # Convert using ffmpeg to 16-bit PCM WAV
                 try:
                     subprocess.run(
-                        ['ffmpeg','-y', '-i', mp3_path,'-ar','16000', '-acodec', 'pcm_s16le', wav_path],
+                        ['ffmpeg','-y', 
+                         '-i', mp3_path, 
+                         '-af', 'loudnorm',
+                         '-acodec', 'pcm_s16le', 
+                         wav_path],
                         check=True
                     )
                     os.remove(mp3_path)
