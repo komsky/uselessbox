@@ -3,7 +3,7 @@
 from gpiozero import AngularServo
 from time import sleep
 
-HAND_ANGLE = 60
+HAND_ANGLE = 65
 class HandServo:
     def __init__(
         self,
@@ -41,7 +41,7 @@ class HandServo:
         if not (servo.min_angle <= angle <= servo.max_angle):
             raise ValueError(f"Angle must be between {servo.min_angle} and {servo.max_angle}")
         servo.angle = angle
-        sleep(0.4)
+        sleep(0.5)
         servo.detach()
 
     def turnOffToggleAndBack(self) -> None:
