@@ -208,13 +208,13 @@ class MainApplication:
         
     def WindowsXP(self):
         wsled.on()
-        sounds.play_this("audio/windows_startup.wav")
+        sounds.play_file("audio/windows_startup.wav")
         self.topServo.up()   
         time.sleep(1)
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
-        sounds.play_this("audio/windows_shutdown.wav")
+        sounds.play_file("audio/windows_shutdown.wav")
         time.sleep(1.5)
         self.topServo.zero()        
         time.sleep(1)
