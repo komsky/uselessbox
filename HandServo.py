@@ -67,7 +67,7 @@ class TopServo:
 def main():
     servo = TopServo()
     try:
-        servo.arc()
+        servo.arc(HAND_ANGLE)
         sleep(0.2)
 
         print("Resetting to zero and detaching.")
