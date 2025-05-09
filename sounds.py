@@ -1,6 +1,9 @@
+import pydub
 from pydub import AudioSegment
 from pydub.playback import play
 import os
+import platform
+import sys
 import random
 
 core_path = os.path.dirname(os.path.abspath(__file__))
@@ -10,15 +13,11 @@ sound_files = {
     "knight_rider": os.path.join(core_path, "audio/Effects/knight_rider.wav"),
     "yes_master": os.path.join(core_path, "audio/Effects/yes_master.wav")
 }
-def play_this(file:str):
+
+def play_file(file:str):
     file_path = os.path.join(core_path, file)
     if os.path.exists(file_path):
-        try:
-            sound = AudioSegment.from_file(file_path)
-            print(f"Playing sound: {file_path}")
-            play(sound)
-        except Exception as e:
-            print(f"Error playing sound: {e}")
+        play_sound(file_path)
     else:
         print(f"Sound file '{file_path}' not found.")
 
@@ -53,4 +52,4 @@ if __name__ == "__main__":
     play_predefined_sounds("yes_master")
     play_sound(os.path.join(core_path, "audio/Soundboard/Arnold_Terminator/affirmative.wav"))
     play_random_greeting()
-    play_this("audio/windows_startup.wav")
+    play_file("audio/windows_startup.wav")
