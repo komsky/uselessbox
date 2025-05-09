@@ -3,6 +3,7 @@
 from gpiozero import AngularServo
 from time import sleep
 
+HAND_ANGLE = 60
 class TopServo:
     def __init__(
         self,
@@ -40,17 +41,18 @@ class TopServo:
         if not (servo.min_angle <= angle <= servo.max_angle):
             raise ValueError(f"Angle must be between {servo.min_angle} and {servo.max_angle}")
         servo.angle = angle
-        sleep(0.5)
+        sleep(0.4)
         servo.detach()
 
     def turnOffToggleAndBack(self) -> None:
-        self.arc(55)
-        sleep(0.2)
+        self.arc(HAND_ANGLE)
+        sleep(0.1)
         sleep.zero()
         
     def wiggleHand(self) -> None:
         """Move to min_angle and detach."""
         self.arc(20)
+        self.zero()
     
     def zero(self) -> None:
         """Move to min_angle and detach."""
@@ -65,7 +67,7 @@ class TopServo:
 def main():
     servo = TopServo()
     try:
-        servo.arc(55)
+        servo.arc()
         sleep(0.2)
 
         print("Resetting to zero and detaching.")
