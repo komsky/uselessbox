@@ -175,22 +175,53 @@ class MainApplication:
                             print("Received event:", data)
 
                             if data == "ON":
-                                wsled.on()
-                                sounds.play_random_greeting()
-                                self.topServo.up()   
-                                time.sleep(1)
-                                self.handServo.turnOffToggleAndBack()  
-                                wsled.off()
-                                self.handServo.zero()
-                                time.sleep(1.5)
-                                self.handServo.wiggleHand()
-                                time.sleep(2)
-                                self.topServo.zero()
+                                self.RandomAction()
 
 
             except Exception as e:
                 print("Error while subscribing to toggle events:", e)
-                time.sleep(5)  # retry after a delay
+                time.sleep(5) 
+    def RandomAction(self):
+        random_number = random.randint(1, 3)
+        if random_number == 1:
+            self.StandardGreeting()
+        elif random_number == 2:
+            self.WindowsXP()
+        elif random_number == 3:
+            self.WindowsXP()
+
+    def StandardGreeting(self):
+        wsled.on()
+        sounds.play_random_greeting()
+        self.topServo.up()   
+        time.sleep(1)
+        self.handServo.turnOffToggleAndBack()  
+        wsled.off()
+        self.handServo.zero()
+        time.sleep(1.5)
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        self.handServo.wiggleHand()
+        time.sleep(2)
+        self.topServo.zero()    
+        
+    def WindowsXP(self):
+        wsled.on()
+        sounds.play_sound("audio/windows_startup.wav")
+        self.topServo.up()   
+        time.sleep(1)
+        self.handServo.turnOffToggleAndBack()  
+        wsled.off()
+        self.handServo.zero()
+        sounds.play_sound("audio/windows_startup.wav")
+        time.sleep(1.5)
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        self.handServo.wiggleHand()
+        time.sleep(2)
+        self.topServo.zero() # retry after a delay
 
     def run(self):
         self.subscribe_toggle()

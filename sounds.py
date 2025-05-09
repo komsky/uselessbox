@@ -15,7 +15,9 @@ sound_files = {
     "knight_rider": os.path.join(core_path, "audio/Effects/knight_rider.wav"),
     "yes_master": os.path.join(core_path, "audio/Effects/yes_master.wav")
 }
-# Function to play a sound file
+def play(sound_file:str):
+    play_sound(os.path.join(core_path, sound_file))
+    
 def play_sound(sound_file: str):
     """
     Play a sound file using the playsound library.    
