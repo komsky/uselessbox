@@ -176,25 +176,17 @@ class MainApplication:
 
                             if data == "ON":
                                 wsled.on()
-                                time.sleep(1)
                                 sounds.play_random_greeting()
-                                self.topServo.up()   # move top servo up
+                                self.topServo.up()   
                                 time.sleep(1)
-                                #wled.angry()  # example: move servo to 90 degrees
-                                self.handServo.angle(80)
-                                time.sleep(0.5)
-                                self.handServo.zero()
-
-                            elif data == "OFF":
+                                self.handServo.turnOffToggleAndBack()  
                                 wsled.off()
-                                self.topServo.zero()   # reset servo to 0 degrees
-                                time.sleep(1)
-                                self.topServo.arc(30)
-                                self.handServo.angle(20)
-                                time.sleep(0.5)
                                 self.handServo.zero()
                                 time.sleep(1.5)
+                                self.handServo.wiggleHand()
+                                time.sleep(2)
                                 self.topServo.zero()
+
 
             except Exception as e:
                 print("Error while subscribing to toggle events:", e)
