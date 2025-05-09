@@ -182,15 +182,16 @@ class MainApplication:
                 print("Error while subscribing to toggle events:", e)
                 time.sleep(5) 
     def RandomAction(self):
-        random_number = random.randint(1, 3)
-        if random_number == 1:
-            self.Achmed()
-        elif random_number == 2:
-            self.WindowsXP()
-        elif random_number == 3:
-            self.Terminator()
-        elif random_number == 4:
-            self.Neostrada()
+        self.Neostrada()
+        # random_number = random.randint(1, 4)
+        # if random_number == 1:
+        #     self.Achmed()
+        # elif random_number == 2:
+        #     self.WindowsXP()
+        # elif random_number == 3:
+        #     self.Terminator()
+        # elif random_number == 4:
+        #     self.Neostrada()
 
     def Achmed(self):
         wsled.on()        
