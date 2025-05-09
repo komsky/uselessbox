@@ -1,1 +1,1 @@
-sudo /komsky/home/uselessbox/venv/bin/python /komsky/home/uselessbox/main.py
+sudo /home/komsky/uselessbox/venv/bin/python /home/komsky/uselessbox/main.py
