@@ -53,22 +53,22 @@ class MainApplication:
         # self.oled = OLED_Display()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
-        app.resetChatHistory()
+        self.resetChatHistory()
         logging.debug("MainApplication initialized")
 
-    def resetChatHistory(src='chatHistory.starter.json', dst='chatHistory.json'):
+    def resetChatHistory(self, sourceFile="chatHistory.starter.json", destinationFile="chatHistory.json"):
         logging.debug("Resetting chat history")
-        if not os.path.exists(src):
-            logging.debug(f"Error: Starter chat history '{src}' does not exist.")
+        if not os.path.exists(sourceFile):
+            logging.debug(f"Error: Starter chat history '{sourceFile}' does not exist.")
             sys.exit(1)
         try:
-            shutil.copyfile(src, dst)
-            logging.debug(f"Successfully overwritten '{dst}' with '{src}'")
+            shutil.copyfile(sourceFile, destinationFile)
+            logging.debug(f"Successfully overwritten '{destinationFile}' with '{sourceFile}'")
         except FileNotFoundError:
-            logging.debug(f"Error: Source file '{src}' not found.")
+            logging.debug(f"Error: Source file '{sourceFile}' not found.")
             sys.exit(1)
         except PermissionError:
-            logging.debug(f"Error: Permission denied when writing to '{dst}'.")
+            logging.debug(f"Error: Permission denied when writing to '{destinationFile}'.")
             sys.exit(1)
         except Exception as e:
             logging.debug(f"An unexpected error occurred: {e}")
