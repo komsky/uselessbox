@@ -47,7 +47,7 @@ class HandServo:
     def turnOffToggleAndBack(self) -> None:
         self.arc(HAND_ANGLE)
         sleep(0.1)
-        sleep.zero()
+        self.zero()
         
     def wiggleHand(self) -> None:
         """Move to min_angle and detach."""
