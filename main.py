@@ -188,7 +188,7 @@ class MainApplication:
         elif random_number == 2:
             self.WindowsXP()
         elif random_number == 3:
-            self.WindowsXP()
+            self.Terminator()
 
     def StandardGreeting(self):
         wsled.on()
@@ -208,19 +208,33 @@ class MainApplication:
         
     def WindowsXP(self):
         wsled.on()
-        sounds.play_file("audio/windows_startup.wav")
         self.topServo.up()   
-        time.sleep(1)
+        sounds.play_file("audio/windows_startup.wav")
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
         sounds.play_file("audio/windows_shutdown.wav")
-        time.sleep(1.5)
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
         self.handServo.wiggleHand()
         time.sleep(2)
+        self.topServo.zero() 
+
+    def Terminator(self):
+        wsled.on()
+        self.topServo.up()   
+        sounds.play_file("audio/Soundboard/Arnold_Terminator/im_a_cybernetic_organism_living_tissue_over_metal_endoskeleton.wav")
+        self.handServo.turnOffToggleAndBack()  
+        wsled.off()
+        sounds.play_file("audio/Soundboard/Arnold_Terminator/humans-inevitably-die.wav")
+        self.handServo.zero()
+        sounds.play_file("audio/Soundboard/Arnold_Terminator/hasta_la_vista_baby.wav")
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        sounds.play_file("audio/Soundboard/Arnold_Terminator/talk_to_the_hand.wav")
+        self.handServo.wiggleHand()        
         self.topServo.zero() 
 
     def run(self):
