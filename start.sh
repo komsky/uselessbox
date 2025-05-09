@@ -1,0 +1,1 @@
+sudo /komsky/home/useless/venv/bin/python /komsky/home/useless/main.py
