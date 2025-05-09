@@ -4,7 +4,7 @@ from gpiozero import AngularServo
 from time import sleep
 
 HAND_ANGLE = 60
-class TopServo:
+class HandServo:
     def __init__(
         self,
         servo_pin: int = 22,   # BCM pin
@@ -65,7 +65,7 @@ class TopServo:
             self.servo.close()
 
 def main():
-    servo = TopServo()
+    servo = HandServo()
     try:
         servo.arc(HAND_ANGLE)
         sleep(0.2)

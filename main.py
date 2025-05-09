@@ -194,7 +194,7 @@ class MainApplication:
 
     def run(self):
         self.subscribe_toggle()
-        self.listen_for_command()
+        # self.listen_for_command()
                     
 
 if __name__ == '__main__':
