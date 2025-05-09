@@ -5,6 +5,7 @@ import os
 import platform
 import sys
 import random
+import time
 
 core_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,6 +28,7 @@ def play_sound(sound_file: str):
             sound = AudioSegment.from_file(sound_file)
             print(f"Playing sound: {sound_file}")
             play(sound)
+            time.sleep(0.1)  # Small delay to ensure playback completes
         except Exception as e:
             print(f"Error playing sound: {e}")
     else:
