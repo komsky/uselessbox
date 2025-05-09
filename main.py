@@ -208,20 +208,20 @@ class MainApplication:
         
     def WindowsXP(self):
         wsled.on()
-        sounds.play("audio/windows_startup.wav")
+        sounds.play_this("audio/windows_startup.wav")
         self.topServo.up()   
         time.sleep(1)
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
-        sounds.play("audio/windows_startup.wav")
+        sounds.play_this("audio/windows_shutdown.wav")
         time.sleep(1.5)
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
         self.handServo.wiggleHand()
         time.sleep(2)
-        self.topServo.zero() # retry after a delay
+        self.topServo.zero() 
 
     def run(self):
         self.subscribe_toggle()
