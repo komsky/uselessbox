@@ -25,7 +25,7 @@ def on():
     """Turn all LEDs on (green)."""
     _init_strip()
     for i in range(_strip.numPixels()):
-        _strip.setPixelColor(i, Color(128, 72, 0))  
+        _strip.setPixelColor(i, Color(192, 128, 100))  
     _strip.show()
 
 def off():

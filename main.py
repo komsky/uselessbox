@@ -184,17 +184,18 @@ class MainApplication:
     def RandomAction(self):
         random_number = random.randint(1, 3)
         if random_number == 1:
-            self.StandardGreeting()
+            self.Achmed()
         elif random_number == 2:
             self.WindowsXP()
         elif random_number == 3:
             self.Terminator()
+        elif random_number == 4:
+            self.Neostrada()
 
-    def StandardGreeting(self):
-        wsled.on()
-        sounds.play_random_greeting()
+    def Achmed(self):
+        wsled.on()        
         self.topServo.up()   
-        time.sleep(1)
+        sounds.play_file("audio/Greetings/achmed-stop_touching_me_i_kill_you.wav")
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
@@ -202,8 +203,8 @@ class MainApplication:
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
+        sounds.play_file("audio/Greetings/ahmed_silence_I_kill_you.wav")
         self.handServo.wiggleHand()
-        time.sleep(2)
         self.topServo.zero()    
         
     def WindowsXP(self):
@@ -223,17 +224,34 @@ class MainApplication:
 
     def Terminator(self):
         wsled.on()
-        self.topServo.up()   
         sounds.play_file("audio/Soundboard/Arnold_Terminator/im_a_cybernetic_organism_living_tissue_over_metal_endoskeleton.wav")
+        self.topServo.up()   
+        sounds.play_file("audio/Soundboard/Arnold_Terminator/hasta_la_vista_baby.wav")
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         sounds.play_file("audio/Soundboard/Arnold_Terminator/humans-inevitably-die.wav")
-        self.handServo.zero()
-        sounds.play_file("audio/Soundboard/Arnold_Terminator/hasta_la_vista_baby.wav")
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
         sounds.play_file("audio/Soundboard/Arnold_Terminator/talk_to_the_hand.wav")
+        self.handServo.wiggleHand()        
+        self.handServo.wiggleHand()        
+        self.handServo.wiggleHand()        
+        self.topServo.zero() 
+
+    def Neostrada(self):
+        wsled.on()
+        self.topServo.up()           
+        sounds.play_file("audio/long/neostrada_serce_i_rozum.wav")
+        self.handServo.turnOffToggleAndBack()  
+        wsled.off()
+        # sounds.play_file("audio/Soundboard/Arnold_Terminator/humans-inevitably-die.wav")
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        # sounds.play_file("audio/Soundboard/Arnold_Terminator/talk_to_the_hand.wav")
+        self.handServo.wiggleHand()        
+        self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
         self.topServo.zero() 
 
