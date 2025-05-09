@@ -48,8 +48,8 @@ class MainApplication:
         # self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
         # self.speak_module = SpeakModule(os.getenv("AZURE_KEY"), os.getenv("AZURE_REGION"))
         # self.wled = wled
-        self.handServo = HandServo(gpio_pin=22)
-        self.topServo = TopServo(servo_pin=22)
+        self.handServo = HandServo()
+        self.topServo = TopServo()
         # self.oled = OLED_Display()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
