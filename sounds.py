@@ -11,7 +11,16 @@ sound_files = {
     "yes_master": os.path.join(core_path, "audio/Effects/yes_master.wav")
 }
 def play_this(file:str):
-    play_sound(os.path.join(core_path, file))
+    file_path = os.path.join(core_path, file)
+    if os.path.exists(file_path):
+        try:
+            sound = AudioSegment.from_file(file_path)
+            print(f"Playing sound: {file_path}")
+            play(sound)
+        except Exception as e:
+            print(f"Error playing sound: {e}")
+    else:
+        print(f"Sound file '{file_path}' not found.")
 
 def play_sound(sound_file: str):
     if os.path.exists(sound_file):
@@ -44,4 +53,4 @@ if __name__ == "__main__":
     play_predefined_sounds("yes_master")
     play_sound(os.path.join(core_path, "audio/Soundboard/Arnold_Terminator/affirmative.wav"))
     play_random_greeting()
-    play_this("audio/Effects/how_can_i_help_master.wav")
+    play_this("audio/windows_startup.wav")
