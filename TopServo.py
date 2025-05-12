@@ -40,8 +40,8 @@ class TopServo:
         if not (servo.min_angle <= angle <= servo.max_angle):
             raise ValueError(f"Angle must be between {servo.min_angle} and {servo.max_angle}")
         servo.angle = angle
-        # sleep(0.5) #let's speed things up
-        # servo.detach() # detaching closes the box due to pressure
+        sleep(0.2) 
+        servo.detach() 
 
     def up(self) -> None:
         """Opening the box"""
