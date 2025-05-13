@@ -11,7 +11,7 @@ from voice_activity_detection import VADAudio
 from chat_gpt_client import ChatGPTClient
 import sounds
 # from fancy_module import FancyInstructions
-# import pvporcupine
+import pvporcupine
 import numpy as np
 # from wled_proxy import WledProxy
 import SpeakModule
@@ -37,15 +37,14 @@ class MainApplication:
         
         logging.debug("Logging configured.Starting Main Application")
         self.args = args
-        self.vad_audio = None
+        self.vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
         # self.fancy = fancy
         self.chat_gpt_client =  ChatGPTClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
-    
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
         self.keyword_file_path = os.path.join(self.current_folder, "arnold.ppn")
-        # self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
+        self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
         # self.speak_module = SpeakModule(os.getenv("AZURE_KEY"), os.getenv("AZURE_REGION"))
         # self.wled = wled
         self.handServo = HandServo()
@@ -78,31 +77,30 @@ class MainApplication:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
 
-    # async def wait_for_wakeword(self):
-    #     self.oled.write_smart_split("Waiting for wake word...")
-    #     await self.wled.stop()
-    #     frames = self.vad_audio.vad_collector()
-    #     wav_data = bytearray()
-    #     for frame in frames:
-    #         if frame is not None:
-    #             if self.spinner:
-    #                 self.spinner.start()
-    #                 await self.wled.pulse() 
-    #             wav_data.extend(frame)
-    #         else:
-    #             if self.spinner:
-    #                 self.spinner.stop()
-    #             self.oled.write_smart_split("speech ended, looking for keyword")
+    async def wait_for_wakeword(self):
+        print("Waiting for wake word...")
+        frames = self.vad_audio.vad_collector()
+        wav_data = bytearray()
+        for frame in frames:
+            if frame is not None:
+                if self.spinner:
+                    self.spinner.start()
+                    # await self.wled.pulse() 
+                wav_data.extend(frame)
+            else:
+                if self.spinner:
+                    self.spinner.stop()
+                print("speech ended, looking for keyword")
 
-    #             audio_data_np = np.frombuffer(wav_data, dtype=np.int16)
-    #             for i in range(0, len(audio_data_np), self.porcupine.frame_length):
-    #                 frame = audio_data_np[i:i+self.porcupine.frame_length]
-    #                 if len(frame) == self.porcupine.frame_length:
-    #                     keyword_index = self.porcupine.process(frame)
-    #                     if keyword_index >= 0:
-    #                         self.oled.write_smart_split("keyword detected")
-    #                         return
-    #             wav_data = bytearray()
+                audio_data_np = np.frombuffer(wav_data, dtype=np.int16)
+                for i in range(0, len(audio_data_np), self.porcupine.frame_length):
+                    frame = audio_data_np[i:i+self.porcupine.frame_length]
+                    if len(frame) == self.porcupine.frame_length:
+                        keyword_index = self.porcupine.process(frame)
+                        if keyword_index >= 0:
+                            print("keyword detected")
+                            return
+                wav_data = bytearray()
 
     def listen_for_command(self):
         # self.oled.write_smart_split("Listening for command...")
@@ -245,19 +243,17 @@ class MainApplication:
         sounds.play_file("audio/long/neostrada_serce_i_rozum.wav")
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
-        # sounds.play_file("audio/Soundboard/Arnold_Terminator/humans-inevitably-die.wav")
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
-        # sounds.play_file("audio/Soundboard/Arnold_Terminator/talk_to_the_hand.wav")
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
         self.topServo.zero() 
 
     def run(self):
-        self.subscribe_toggle()
-        # self.listen_for_command()
+        # self.subscribe_toggle()
+        self.wait_for_wakeword()
                     
 
 if __name__ == '__main__':
