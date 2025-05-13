@@ -77,30 +77,59 @@ class MainApplication:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
 
+    # async def wait_for_wakeword(self):
+    #     print("Waiting for wake word...")
+    #     frames = self.vad_audio.vad_collector()
+    #     wav_data = bytearray()
+    #     for frame in frames:
+    #         if frame is not None:
+    #             if self.spinner:
+    #                 self.spinner.start()
+    #                 # await self.wled.pulse() 
+    #             wav_data.extend(frame)
+    #         else:
+    #             if self.spinner:
+    #                 self.spinner.stop()
+    #             # print("speech ended, looking for keyword")
+
+    #             audio_data_np = np.frombuffer(wav_data, dtype=np.int16)
+    #             for i in range(0, len(audio_data_np), self.porcupine.frame_length):
+    #                 frame = audio_data_np[i:i+self.porcupine.frame_length]
+    #                 if len(frame) == self.porcupine.frame_length:
+    #                     keyword_index = self.porcupine.process(frame)
+    #                     if keyword_index >= 0:
+    #                         print("keyword detected!")
+    #                         return
+    #             wav_data = bytearray()
     async def wait_for_wakeword(self):
         print("Waiting for wake word...")
         frames = self.vad_audio.vad_collector()
-        wav_data = bytearray()
         for frame in frames:
             if frame is not None:
                 if self.spinner:
                     self.spinner.start()
-                    # await self.wled.pulse() 
-                wav_data.extend(frame)
+                    # await self.wled.pulse()
+
+                # If using ReSpeaker, convert to mono if needed
+                pcm = np.frombuffer(frame, dtype=np.int16)
+
+                if pcm.ndim > 1 or self.respeaker_channels > 1:
+                    pcm = pcm[::self.respeaker_channels]  # Use channel 0
+
+                # Feed 512-sample frames into Porcupine
+                for i in range(0, len(pcm), self.porcupine.frame_length):
+                    subframe = pcm[i:i + self.porcupine.frame_length]
+                    if len(subframe) == self.porcupine.frame_length:
+                        keyword_index = self.porcupine.process(subframe)
+                        if keyword_index >= 0:
+                            print("keyword detected!")
+                            if self.spinner:
+                                self.spinner.stop()
+                            return
             else:
                 if self.spinner:
                     self.spinner.stop()
-                # print("speech ended, looking for keyword")
 
-                audio_data_np = np.frombuffer(wav_data, dtype=np.int16)
-                for i in range(0, len(audio_data_np), self.porcupine.frame_length):
-                    frame = audio_data_np[i:i+self.porcupine.frame_length]
-                    if len(frame) == self.porcupine.frame_length:
-                        keyword_index = self.porcupine.process(frame)
-                        if keyword_index >= 0:
-                            print("keyword detected!")
-                            return
-                wav_data = bytearray()
 
     def listen_for_command(self):
         # self.oled.write_smart_split("Listening for command...")
