@@ -15,7 +15,7 @@ import pvporcupine
 import numpy as np
 # from wled_proxy import WledProxy
 import SpeakModule
-# import asyncio
+import asyncio
 # from langdetect import detect
 # libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'oled')
 # if os.path.exists(libdir):
@@ -43,7 +43,7 @@ class MainApplication:
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
-        self.keyword_file_path = os.path.join(self.current_folder, "arnold.ppn")
+        self.keyword_file_path = os.path.join(self.current_folder, "hey-octo_en_raspberry-pi_v3_0_0.ppn")
         self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
         # self.speak_module = SpeakModule(os.getenv("AZURE_KEY"), os.getenv("AZURE_REGION"))
         # self.wled = wled
@@ -253,7 +253,9 @@ class MainApplication:
 
     def run(self):
         # self.subscribe_toggle()
-        self.wait_for_wakeword()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.wait_for_wakeword())
+        
                     
 
 if __name__ == '__main__':
@@ -273,6 +275,5 @@ if __name__ == '__main__':
     app = MainApplication(args)
     app.run()
     
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(app.run())
+  
     

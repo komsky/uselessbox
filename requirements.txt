@@ -12,3 +12,5 @@ gpiozero
 pigpio
 requests
 rpi_ws281x
+asyncio
+pvporcupine 
