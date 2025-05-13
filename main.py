@@ -195,7 +195,7 @@ class MainApplication:
     def Achmed(self):
         wsled.on()        
         self.topServo.up()   
-        sounds.play_file("audio/Greetings/achmed-stop_touching_me_i_kill_you.wav")
+        sounds.play_file("audio/ahmed/ahmed_silence_I_kill_you.wav")
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
@@ -203,7 +203,7 @@ class MainApplication:
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
-        sounds.play_file("audio/Greetings/ahmed_silence_I_kill_you.wav")
+        sounds.play_file("audio/ahmed/achmed-stop_touching_me_i_kill_you.wav")
         self.handServo.wiggleHand()
         self.topServo.zero()    
         
