@@ -199,7 +199,7 @@ class MainApplication:
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
-        time.sleep(1.5)
+        time.sleep(0.5)
         self.topServo.zero()        
         time.sleep(1)
         self.topServo.up()   
