@@ -90,7 +90,7 @@ class MainApplication:
             else:
                 if self.spinner:
                     self.spinner.stop()
-                print("speech ended, looking for keyword")
+                # print("speech ended, looking for keyword")
 
                 audio_data_np = np.frombuffer(wav_data, dtype=np.int16)
                 for i in range(0, len(audio_data_np), self.porcupine.frame_length):
@@ -100,6 +100,12 @@ class MainApplication:
                         if keyword_index >= 0:
                             print("keyword detected")
                             return
+                #save wav data with timestamp
+                date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
+                saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
+                with open(saved_file, "wb") as f:
+                    f.write(wav_data)
+                print(f"Saved wav data to {saved_file}")
                 wav_data = bytearray()
 
     def listen_for_command(self):
