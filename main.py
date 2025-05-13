@@ -98,14 +98,8 @@ class MainApplication:
                     if len(frame) == self.porcupine.frame_length:
                         keyword_index = self.porcupine.process(frame)
                         if keyword_index >= 0:
-                            print("keyword detected")
+                            print("keyword detected!")
                             return
-                #save wav data with timestamp
-                date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
-                saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
-                with open(saved_file, "wb") as f:
-                    f.write(wav_data)
-                print(f"Saved wav data to {saved_file}")
                 wav_data = bytearray()
 
     def listen_for_command(self):
@@ -268,7 +262,7 @@ if __name__ == '__main__':
     load_dotenv()
     current_folder = os.getcwd()
     parser = argparse.ArgumentParser(description="Stream from microphone using VAD and OpenAI Whisper API")
-    parser.add_argument('-v', '--vad_aggressiveness', type=int, default=2, help="Set aggressiveness of VAD: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive.")
+    parser.add_argument('-v', '--vad_aggressiveness', type=int, default=3, help="Set aggressiveness of VAD: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive.")
     parser.add_argument('--nospinner', action='store_true', help="Disable spinner")
     parser.add_argument('-w', '--savewav', default=os.path.join(os.getcwd(),'audio/saved/'), help="Save .wav files of utterances to given directory")
     parser.add_argument('-f', '--file', help="Read from .wav file instead of microphone")
