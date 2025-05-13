@@ -28,6 +28,8 @@ from TopServo import TopServo
 import requests
 import wsled
 import random
+import wave
+from datetime import datetime
 
 EVENTS_URL = "http://127.0.0.1:5000/events"
 
@@ -77,10 +79,47 @@ class MainApplication:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
 
+    # async def wait_for_wakeword(self):
+    #     print("Waiting for wake word...")
+    #     frames = self.vad_audio.vad_collector()
+        
+    #     for frame in frames:
+    #         if frame is None:
+    #             if self.spinner:
+    #                 self.spinner.stop()
+    #             continue
+
+    #         if self.spinner:
+    #             self.spinner.start()
+
+    #         # Convert stereo frame to mono (int16) for Porcupine
+    #         stereo_samples = np.frombuffer(frame, dtype=np.int16).reshape(-1, 2)
+    #         mono_samples = np.clip(stereo_samples.sum(axis=1), -32768, 32767).astype(np.int16)
+
+    #         # Split mono_samples into chunks for Porcupine processing
+    #         for i in range(0, len(mono_samples), self.porcupine.frame_length):
+    #             subframe = mono_samples[i:i + self.porcupine.frame_length]
+    #             if len(subframe) != self.porcupine.frame_length:
+    #                 continue  # skip incomplete frame
+
+    #             keyword_index = self.porcupine.process(subframe)
+    #             if keyword_index >= 0:
+    #                 if self.spinner:
+    #                     self.spinner.stop()
+    #                 print("Wakeword detected!")
+    #                 return
+
+
     async def wait_for_wakeword(self):
         print("Waiting for wake word...")
         frames = self.vad_audio.vad_collector()
-        
+        sample_rate = 16000
+        silence_threshold = 500  # below this = likely silence
+        max_record_seconds = 5
+        max_record_frames = sample_rate * max_record_seconds
+
+        recorded_samples = []
+
         for frame in frames:
             if frame is None:
                 if self.spinner:
@@ -90,22 +129,57 @@ class MainApplication:
             if self.spinner:
                 self.spinner.start()
 
-            # Convert stereo frame to mono (int16) for Porcupine
-            stereo_samples = np.frombuffer(frame, dtype=np.int16).reshape(-1, 2)
-            mono_samples = np.clip(stereo_samples.sum(axis=1), -32768, 32767).astype(np.int16)
+            # Convert stereo -> mono
+            try:
+                stereo_samples = np.frombuffer(frame, dtype=np.int16).reshape(-1, 2)
+                mono_samples = np.clip(stereo_samples.sum(axis=1), -32768, 32767).astype(np.int16)
+            except Exception as e:
+                logging.error(f"Audio conversion error: {e}")
+                continue
 
-            # Split mono_samples into chunks for Porcupine processing
+            # Debug: log silence
+            peak = np.max(np.abs(mono_samples))
+            if peak < silence_threshold:
+                logging.debug(f"Silent or low-volume frame detected (peak={peak})")
+
+            recorded_samples.extend(mono_samples.tolist())
+            if len(recorded_samples) > max_record_frames:
+                recorded_samples = recorded_samples[-max_record_frames:]  # Keep last N seconds
+
+            # Feed to Porcupine
             for i in range(0, len(mono_samples), self.porcupine.frame_length):
                 subframe = mono_samples[i:i + self.porcupine.frame_length]
                 if len(subframe) != self.porcupine.frame_length:
-                    continue  # skip incomplete frame
+                    continue
 
                 keyword_index = self.porcupine.process(subframe)
                 if keyword_index >= 0:
                     if self.spinner:
                         self.spinner.stop()
-                    print("Wakeword detected!")
+
+                    print("? Wakeword detected!")
+
+                    # Save recorded audio for debugging
+                    self._save_debug_audio(recorded_samples, sample_rate)
                     return
+
+    # Utility method to save wav files
+    def _save_debug_audio(self, int16_samples, rate=16000):
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"debug_wakeword_{now}.wav"
+        filepath = os.path.join(os.getcwd(), "debug_audio")
+        os.makedirs(filepath, exist_ok=True)
+
+        full_path = os.path.join(filepath, filename)
+        try:
+            with wave.open(full_path, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)  # 16-bit
+                wf.setframerate(rate)
+                wf.writeframes(np.array(int16_samples, dtype=np.int16).tobytes())
+            logging.info(f"? Saved debug audio to: {full_path}")
+        except Exception as e:
+            logging.error(f"Failed to save debug audio: {e}")
 
 
 
