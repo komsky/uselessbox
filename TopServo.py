@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-
 from gpiozero import AngularServo
 from time import sleep
+
+TOP_ARC = 40
 
 class TopServo:
     def __init__(
@@ -45,7 +46,7 @@ class TopServo:
 
     def up(self) -> None:
         """Opening the box"""
-        self.arc(60)    
+        self.arc(TOP_ARC)    
     def down(self) -> None:
         """Closing the box"""
         self.zero()
@@ -64,11 +65,29 @@ class TopServo:
 def main():
     servo = TopServo()
     try:
-        servo.arc(60)
+        servo.arc(TOP_ARC)
         sleep(2)
 
         print("Resetting to zero and detaching.")
         servo.zero()
+        # ask for arc angle in a loop and move the servo, then zero
+        while True:
+            try:
+                angle = float(input(f"Enter angle between {servo.min_angle} and {servo.max_angle}: "))
+                servo.arc(angle)
+                sleep(1)
+                print("3 ...")
+                sleep(1)
+                print("2 ...")
+                sleep(1)
+                print("1 ...")
+                sleep(1)
+                print("Zeroing servo.")
+                servo.zero()
+            except ValueError as e:
+                print(f"Invalid input: {e}")
+            except KeyboardInterrupt:
+                break
     finally:
         servo.cleanup()
         print("Cleaned up GPIO and exiting.")
