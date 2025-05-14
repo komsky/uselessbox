@@ -56,17 +56,17 @@ class VADAudio(Audio):
             is_speech = self.vad.is_speech(mono_frame, self.sample_rate)
 
             if not triggered:
-                ring_buffer.append((frame, is_speech))
+                ring_buffer.append((mono_frame, is_speech))
                 num_voiced = sum(1 for f, speech in ring_buffer if speech)
                 if num_voiced > ratio * ring_buffer.maxlen:
                     triggered = True
-                    # emit all buffered *stereo* frames
+                    # emit all buffered *mono* frames
                     for f, _ in ring_buffer:
                         yield f
                     ring_buffer.clear()
             else:
                 yield frame
-                ring_buffer.append((frame, is_speech))
+                ring_buffer.append((mono_frame, is_speech))
                 num_unvoiced = sum(1 for f, speech in ring_buffer if not speech)
                 if num_unvoiced > ratio * ring_buffer.maxlen:
                     triggered = False

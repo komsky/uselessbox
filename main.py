@@ -129,29 +129,13 @@ class MainApplication:
             if self.spinner:
                 self.spinner.start()
 
-            # Convert stereo -> mono
-            try:
-                stereo_samples = np.frombuffer(frame, dtype=np.int16).reshape(-1, 2)
-                mono_samples = np.clip(stereo_samples.sum(axis=1), -32768, 32767).astype(np.int16)
-            except Exception as e:
-                logging.error(f"Audio conversion error: {e}")
-                continue
-
-            # Debug: log silence
-            peak = np.max(np.abs(mono_samples))
-            if peak < silence_threshold:
-                logging.debug(f"Silent or low-volume frame detected (peak={peak})")
-
-            recorded_samples.extend(mono_samples.tolist())
-            if len(recorded_samples) > max_record_frames:
-                recorded_samples = recorded_samples[-max_record_frames:]  # Keep last N seconds
+            samples = np.frombuffer(frame, dtype=np.int16)
 
             # Feed to Porcupine
-            for i in range(0, len(mono_samples), self.porcupine.frame_length):
-                subframe = mono_samples[i:i + self.porcupine.frame_length]
+            for i in range(0, len(samples), self.porcupine.frame_length):
+                subframe = samples[i:i + self.porcupine.frame_length]
                 if len(subframe) != self.porcupine.frame_length:
                     continue
-
                 keyword_index = self.porcupine.process(subframe)
                 if keyword_index >= 0:
                     if self.spinner:
