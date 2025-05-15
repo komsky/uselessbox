@@ -38,7 +38,7 @@ def record_utterance(aggressiveness=3, timeout_s=5):
     # collect until silence
     frames = [frame]
     silent_chunks = 0
-    max_silent = int(timeout_s * 1000 / FRAME_MS)
+    max_silent = int(timeout_s * 1000 / FRAME_DURATION_MS)
 
     while True:
         frame = stream.read(FRAME_BYTES, exception_on_overflow=False)
