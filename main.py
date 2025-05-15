@@ -90,8 +90,8 @@ class MainApplication:
         try:
             print("Speak now...")
             wsled.listening()
-            print(f"Waiting for utterance (threshold={args.threshold}, silence={args.silence_timeout}s)")
-            pcm = await self.detector.wait_for_utterance(args.threshold, args.silence_timeout)
+            print(f"Waiting for utterance ")
+            pcm = await self.detector.wait_for_utterance()
 
             self.detector.save_wav(pcm, wav_path)
             print(f"Saved utterance to {wav_path}")
