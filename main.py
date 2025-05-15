@@ -91,49 +91,15 @@ class MainApplication:
             arr  = np.frombuffer(data, np.int16)
             print("Speak now...")
             wsled.listening()
-            frames = vad.vad_collector()
-            for frame in frames:
-                if frame is not None:
-                    if self.spinner:
-                        self.spinner.start()
-                        # await self.wled.pulse() 
-                    wav_data.extend(frame)
-                else:
-                    if self.spinner:
-                        self.spinner.stop()
-                    break
+            
             wsled.thinking()
-            date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
-            saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
-            vad.write_wav(saved_file, wav_data)
-            with open(saved_file, "rb") as audio_file:
-                api_response = self.openAiClient.audio.transcriptions.create(
-                    file=audio_file,       # your audio file handle
-                    model="whisper-1",     # the Whisper model
-                    language='pl',         # auto-detect if you omit this
-                    temperature=0,         # deterministic output
-                    response_format="text" # you?ll get resp.text back
-                )
-
-                recognized_text = api_response;
-                print(f"You said: {recognized_text}")            
-                
-                if self.end_command in recognized_text:
-                    return False
-
-                elif not api_response.strip() == "":
-                    # self.oled.write_smart_split("Thinking...")
-                    arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
-                    wsled.speaking()
-                    await speak.speak_male(arnold_says)
-                    TopServo.down()
+            
             if os.path.exists(saved_file):
                 os.remove(saved_file)
             # await self.wled.stop()
             return True
         finally:
-            vad.close()
-            vad.delete()    
+            vad.close() 
 
     
     def subscribe_toggle(self):

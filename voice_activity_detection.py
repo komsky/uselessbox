@@ -72,3 +72,8 @@ class VADAudio(Audio):
                     triggered = False
                     yield None
                     ring_buffer.clear()
+ #close to release resources
+    def close(self):
+        """Close the audio stream."""
+        if self.vad:
+            self.vad = None
