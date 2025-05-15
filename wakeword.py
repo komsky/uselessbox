@@ -2,10 +2,8 @@ import os
 import argparse
 import asyncio
 from datetime import datetime
-
 import pvporcupine
 from pvrecorder import PvRecorder
-
 
 class WakeWordDetector:
     """
@@ -24,15 +22,20 @@ class WakeWordDetector:
 
     def __init__(
         self,
-        access_key: str,
         keyword_paths: list,
+        access_key: str = None,
         sensitivities: list = None,
         library_path: str = None,
         model_path: str = None,
         device_index: int = -1,
     ):
         # Store configuration ? actual Porcupine and recorder are initialized per call
-        self.access_key = access_key
+        # if access key is none 
+        if access_key is None:
+            self.access_key =os.getenv("PORCUPINE")
+        else:
+            self.access_key = access_key
+
         self.keyword_paths = keyword_paths
         self.sensitivities = sensitivities or [0.5] * len(keyword_paths)
         if len(self.sensitivities) != len(self.keyword_paths):

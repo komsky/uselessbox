@@ -14,3 +14,4 @@ requests
 rpi_ws281x
 asyncio
 pvporcupine 
+pvrecorder

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import time
-from HandServo import HandServo
-from TopServo import TopServo
+from hand import HandServo
+from top import TopServo
 import requests
 import wled
 import random

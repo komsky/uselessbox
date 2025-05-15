@@ -10,21 +10,14 @@ from openai import OpenAI
 from voice_activity_detection import VADAudio
 from chat_gpt_client import ChatGPTClient
 import sounds
-# from fancy_module import FancyInstructions
-import pvporcupine
+from wakeword import WakeWordDetector
 import numpy as np
-# from wled_proxy import WledProxy
-import SpeakModule
+import speak
 import asyncio
-# from langdetect import detect
-# libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'oled')
-# if os.path.exists(libdir):
-#     sys.path.append(libdir)
-# from oled.oled_module import OLED_Display
 import shutil
 import time
-from HandServo import HandServo
-from TopServo import TopServo
+from hand import HandServo
+from top import TopServo
 import requests
 import wsled
 import random
@@ -40,18 +33,14 @@ class MainApplication:
         logging.debug("Logging configured.Starting Main Application")
         self.args = args
         self.vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
-        # self.fancy = fancy
         self.chat_gpt_client =  ChatGPTClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
         self.keyword_file_path = os.path.join(self.current_folder, "hey-octo_en_raspberry-pi_v3_0_0.ppn")
-        self.porcupine = pvporcupine.create(access_key=os.getenv("PORCUPINE"), keyword_paths=[self.keyword_file_path])
-        # self.speak_module = SpeakModule(os.getenv("AZURE_KEY"), os.getenv("AZURE_REGION"))
-        # self.wled = wled
+        self.wakeword = WakeWordDetector(keyword_file_path=self.keyword_file_path)
         self.handServo = HandServo()
         self.topServo = TopServo()
-        # self.oled = OLED_Display()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
         self.resetChatHistory()
@@ -79,105 +68,29 @@ class MainApplication:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
 
-    # async def wait_for_wakeword(self):
-    #     print("Waiting for wake word...")
-    #     frames = self.vad_audio.vad_collector()
-        
-    #     for frame in frames:
-    #         if frame is None:
-    #             if self.spinner:
-    #                 self.spinner.stop()
-    #             continue
-
-    #         if self.spinner:
-    #             self.spinner.start()
-
-    #         # Convert stereo frame to mono (int16) for Porcupine
-    #         stereo_samples = np.frombuffer(frame, dtype=np.int16).reshape(-1, 2)
-    #         mono_samples = np.clip(stereo_samples.sum(axis=1), -32768, 32767).astype(np.int16)
-
-    #         # Split mono_samples into chunks for Porcupine processing
-    #         for i in range(0, len(mono_samples), self.porcupine.frame_length):
-    #             subframe = mono_samples[i:i + self.porcupine.frame_length]
-    #             if len(subframe) != self.porcupine.frame_length:
-    #                 continue  # skip incomplete frame
-
-    #             keyword_index = self.porcupine.process(subframe)
-    #             if keyword_index >= 0:
-    #                 if self.spinner:
-    #                     self.spinner.stop()
-    #                 print("Wakeword detected!")
-    #                 return
-
-
-    async def wait_for_wakeword(self):
-        print("Waiting for wake word...")
-        frames = self.vad_audio.vad_collector()
-        sample_rate = 16000
-        silence_threshold = 500  # below this = likely silence
-        max_record_seconds = 5
-        max_record_frames = sample_rate * max_record_seconds
-
-        recorded_samples = []
-
-        for frame in frames:
-            if frame is None:
-                if self.spinner:
-                    self.spinner.stop()
-                continue
-
-            if self.spinner:
-                self.spinner.start()
-
-            samples = np.frombuffer(frame, dtype=np.int16)
-
-            # Feed to Porcupine
-            for i in range(0, len(samples), self.porcupine.frame_length):
-                subframe = samples[i:i + self.porcupine.frame_length]
-                if len(subframe) != self.porcupine.frame_length:
-                    continue
-                keyword_index = self.porcupine.process(subframe)
-                if keyword_index >= 0:
-                    if self.spinner:
-                        self.spinner.stop()
-
-                    print("? Wakeword detected!")
-
-                    # Save recorded audio for debugging
-                    self._save_debug_audio(recorded_samples, sample_rate)
-                    return
-
-    # Utility method to save wav files
-    def _save_debug_audio(self, int16_samples, rate=16000):
-        now = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"debug_wakeword_{now}.wav"
-        filepath = os.path.join(os.getcwd(), "debug_audio")
-        os.makedirs(filepath, exist_ok=True)
-
-        full_path = os.path.join(filepath, filename)
-        try:
-            with wave.open(full_path, 'wb') as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)  # 16-bit
-                wf.setframerate(rate)
-                wf.writeframes(np.array(int16_samples, dtype=np.int16).tobytes())
-            logging.info(f"? Saved debug audio to: {full_path}")
-        except Exception as e:
-            logging.error(f"Failed to save debug audio: {e}")
-
-
-
     def listen_for_command(self):
-        # self.oled.write_smart_split("Listening for command...")
-        logging.debug("Listening for command...")
-        # await self.wled.listening()
+        logging.debug("Waiting for wakeword...")
+        
+        while True:
+            try:
+                index, keyword = self.wakeword.wait_for_wakeword()
+                logging.debug(f"Detected '{keyword}' (index: {index})")
+                if keyword == "hey-octo":
+                    break
+            except KeyboardInterrupt:
+                logging.debug("Interrupted by user.")
+                return False
+            except Exception as e:
+                logging.debug(f"Error: {e}")
+                return False
+        logging.debug("Wakeword detected, starting command processing")
+
         wav_data = bytearray()
         vad = VADAudio(aggressiveness=self.args.vad_aggressiveness, device=self.args.device, input_rate=self.args.rate, file=self.args.file)
-        #debug
-        data = vad.read()               # or read_resampled()
+        data = vad.read()
         arr  = np.frombuffer(data, np.int16)
-        print("raw int16 samples:", arr[:20])
-        #debug
+        print("Speak now...")
+        wsled.listening()
         frames = vad.vad_collector()
         for frame in frames:
             if frame is not None:
@@ -189,8 +102,7 @@ class MainApplication:
                 if self.spinner:
                     self.spinner.stop()
                 break
-
-        # await self.wled.kit()
+        wsled.thinking()
         date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
         saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
         vad.write_wav(saved_file, wav_data)
@@ -208,20 +120,13 @@ class MainApplication:
             
             if self.end_command in recognized_text:
                 return False
-            
-            # language = detect(recognized_text)
-            # if not (language == 'pl' or language == 'en' or language == 'hi'):
-            #     # self.oled.write_smart_split("Not polish?")
-            #     print("Detected unusual language, not responding")
-            #     return True
 
             elif not api_response.strip() == "":
                 # self.oled.write_smart_split("Thinking...")
                 arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
-                # print(f"ChatGPT: {arnold_says}")
-                # self.oled.write_smart_split("Speaking...")
-                # await self.wled.speaking()
-                # self.speak_module.speak(arnold_says, language)
+                wsled.speaking()
+                asyncio.run(speak.speak_male(arnold_says))
+                TopServo.down()
         if os.path.exists(saved_file):
             os.remove(saved_file)
         # await self.wled.stop()
