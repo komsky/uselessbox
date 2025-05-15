@@ -65,13 +65,20 @@ class MainApplication:
             sys.exit(1)
 
     def configure_logging(self):
-        logging.basicConfig(
-            level    = logging.DEBUG,             # capture DEBUG and above
-            stream   = sys.stdout,                # send logs to stdout
-            format   = '%(asctime)s %(levelname)-8s %(message)s',
-            datefmt  = '%Y-%m-%d %H:%M:%S'
+        root = logging.getLogger()              # the root logger
+        root.setLevel(logging.DEBUG)            # capture DEBUG and above
+
+        sh = logging.StreamHandler(sys.stdout)  # send logs to stdout
+        sh.setLevel(logging.DEBUG)              # only DEBUG+ on this handler
+        fmt = logging.Formatter(
+            '%(asctime)s %(levelname)-8s %(name)s: %(message)s',
+            datefmt='%H:%M:%S'
         )
+        sh.setFormatter(fmt)
+
+        root.addHandler(sh)
         logging.debug("Logging configured")
+
 
     async def listen_for_command(self):
         logging.debug("Waiting for wakeword...")   
