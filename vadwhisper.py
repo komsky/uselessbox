@@ -1,56 +1,54 @@
 import os
 import wave
-import time
 import webrtcvad
 import pyaudio
 from datetime import datetime
 from openai import OpenAI
 
-SAMPLE_RATE = 16000
-FRAME_DURATION_MS = 30
-FRAME_SAMPLES = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
-FRAME_BYTES   = FRAME_SAMPLES * 2
-RESPEAKER_RATE = 16000
-RESPEAKER_CHANNELS = 2 
-RESPEAKER_WIDTH = 2
-# run getDeviceInfo.py to get index
-RESPEAKER_INDEX = 0  # refer to input device id
-CHUNK = 1024
+# ??? CONFIG ???
+SAMPLE_RATE      = 16000
+FRAME_DURATION_MS= 30                   # must be 10, 20 or 30
+FRAME_SAMPLES    = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)  # 480
+FRAME_BYTES      = FRAME_SAMPLES * 2     # 16-bit mono ? 2 bytes/sample
+TIMEOUT_SILENCE  = 1.0                  # seconds of silence to stop
+# ??????????
 
-def record_utterance(aggressiveness=3, timeout_s=5):
-    """Record until we see speech, then until we see silence again."""
-    vad = webrtcvad.Vad(aggressiveness)
-    pa  = pyaudio.PyAudio()
-    stream = pa.open(
-                rate=RESPEAKER_RATE,
-                format=pa.get_format_from_width(RESPEAKER_WIDTH),
-                channels=RESPEAKER_CHANNELS,
-                input=True,
-                input_device_index=RESPEAKER_INDEX)
-    print("Waiting for you to start speaking?")
-    # wait for speech
+def record_utterance(aggressiveness=3):
+    vad    = webrtcvad.Vad(aggressiveness)
+    pa     = pyaudio.PyAudio()
+    stream = pa.open(format=pyaudio.paInt16,
+                     channels=1,
+                     rate=SAMPLE_RATE,
+                     input=True,
+                     frames_per_buffer=FRAME_SAMPLES)
+
+    print("? Waiting for speech?")
+    # 1) spin until we see voice
     while True:
-        frame = stream.read(FRAME_BYTES, exception_on_overflow=False)
-        if vad.is_speech(frame, SAMPLE_RATE):
-            print("? Speech started")
+        buf = stream.read(FRAME_SAMPLES, exception_on_overflow=False)
+        if len(buf) != FRAME_BYTES:
+            continue
+        if vad.is_speech(buf, SAMPLE_RATE):
+            print("??  Speech started")
             break
 
-    # collect until silence
-    frames = [frame]
+    # 2) record until we see silence for TIMEOUT_SILENCE
+    frames = [buf]
     silent_chunks = 0
-    max_silent = int(timeout_s * 1000 / FRAME_DURATION_MS)
+    max_silent_chunks = int(TIMEOUT_SILENCE * 1000 / FRAME_DURATION_MS)
 
     while True:
-        frame = stream.read(FRAME_BYTES, exception_on_overflow=False)
-        if vad.is_speech(frame, SAMPLE_RATE):
-            frames.append(frame)
+        buf = stream.read(FRAME_SAMPLES, exception_on_overflow=False)
+        if len(buf) != FRAME_BYTES:
+            continue
+        frames.append(buf)
+        if vad.is_speech(buf, SAMPLE_RATE):
             silent_chunks = 0
         else:
             silent_chunks += 1
-            if silent_chunks > max_silent:
+            if silent_chunks > max_silent_chunks:
                 print("? Speech ended")
                 break
-            frames.append(frame)
 
     stream.stop_stream()
     stream.close()
@@ -58,51 +56,57 @@ def record_utterance(aggressiveness=3, timeout_s=5):
 
     return b"".join(frames)
 
-def save_wav(pcm_bytes, path):
-    with wave.open(path, 'wb') as wf:
+
+def save_wav(pcm, path):
+    with wave.open(path, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(SAMPLE_RATE)
-        wf.writeframes(pcm_bytes)
+        wf.writeframes(pcm)
+
 
 def transcribe(wav_path, language=None):
     key = os.getenv("OPENAI_API_KEY")
     if not key:
-        raise RuntimeError("Set OPENAI_API_KEY in environment")
+        raise RuntimeError("Please set OPENAI_API_KEY")
     client = OpenAI(api_key=key)
     with open(wav_path, "rb") as f:
         resp = client.audio.transcriptions.create(
-            file=f, model="whisper-1",
-            language=language, temperature=0,
-            response_format="text"
+            file=f,
+            model="whisper-1",
+            language=language,
+            temperature=0.0,
+            response_format="text",
         )
     return resp["text"]
+
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--aggressiveness", type=int, default=3,
-                        help="VAD mode 0?3 (higher=more aggressive)")
+                        help="VAD aggressiveness (0?3, higher=more filtering)")
     parser.add_argument("--language", type=str, default=None,
-                        help="Whisper language code (e.g. 'en')")
+                        help="Whisper language code (e.g. en)")
     parser.add_argument("--out_dir", type=str, default=".",
-                        help="Where to put temporary WAV")
+                        help="Where to store temp WAV")
     args = parser.parse_args()
 
     pcm = record_utterance(args.aggressiveness)
     ts  = datetime.now().strftime("%Y%m%d_%H%M%S")
     wav = os.path.join(args.out_dir, f"utt_{ts}.wav")
     save_wav(pcm, wav)
-    print(f"Saved ? {wav}")
+    print(f"? Saved: {wav}")
 
     text = transcribe(wav, args.language)
-    print("Transcription:", text)
+    print("? Transcription:", text)
 
     try:
         os.remove(wav)
-        print(f"Deleted temporary file {wav}")
+        print(f"??  Deleted temp file")
     except OSError:
         pass
+
 
 if __name__ == "__main__":
     main()
