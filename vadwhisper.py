@@ -3,6 +3,7 @@ import wave
 import speech_recognition as sr
 from datetime import datetime
 from openai import OpenAI
+from dotenv import load_dotenv
 
 def listen_and_transcribe(language=None):
     # pull your Whisper key from the env
@@ -44,6 +45,7 @@ def listen_and_transcribe(language=None):
     return resp["text"]
 
 if __name__ == "__main__":
+    load_dotenv()
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument("--language", default=None)
