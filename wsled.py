@@ -178,7 +178,29 @@ def knightrider():
     anim = KnightRiderAnimation()
     _start_animation(anim)
 
-
+if __name__ == "__main__":
+    # Example usage
+    print("Running example animations...")
+    print("On")
+    on()
+    time.sleep(1)
+    print("Off")
+    off()
+    time.sleep(1)
+    print("Listening")
+    listening()
+    time.sleep(2)
+    print("Speaking")
+    speaking()
+    time.sleep(2)
+    print("Thinking")
+    thinking()
+    time.sleep(2)
+    print("Knight Rider")
+    knightrider()
+    time.sleep(5)
+    print("Off")
+    off()
 # Example usage:
 # listening()
 # time.sleep(5)
