@@ -100,7 +100,7 @@ class MainApplication:
             stt = self.ai_client.transcribe_audio(wav_path)
             print(f"Transcribed text: {stt}")
             #use chatgpt for response
-            response = self.ai_client.call_chatgpt(stt)
+            response = self.ai_client.call_chatgpt_with_history(stt)
             print(f"ChatGPT response: {response}")
             #use tts for response
             await speak.speak_male(response)

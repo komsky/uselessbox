@@ -51,7 +51,7 @@ class OpenAIClient:
                 model="whisper-1",
                 response_format="text"
             )
-        return response.text
+        return response
 
 if __name__ == "__main__":
     load_dotenv()
