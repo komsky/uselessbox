@@ -3,7 +3,7 @@ import os
 import json
 from dotenv import load_dotenv
 
-class ChatGPTClient:
+class OpenAIClient:
     def __init__(self, api_key: str, model: str, history_file: str = "chatHistory.json"):
         # initialize the new client; picks up your key directly
         self.client = OpenAI(api_key=api_key)
@@ -43,6 +43,15 @@ class ChatGPTClient:
 
         print(response_text)
         return response_text
+    def transcribe_audio(self, audio_file: str) -> str:
+        # transcribe audio file
+        with open(audio_file, "rb") as f:
+            response = self.client.audio.transcriptions.create(
+                file=f,
+                model="whisper-1",
+                response_format="text"
+            )
+        return response.text
 
 if __name__ == "__main__":
     load_dotenv()
@@ -50,11 +59,12 @@ if __name__ == "__main__":
     api_key = os.getenv("CHATGPT_API_KEY") or os.getenv("OPENAI_API_KEY")
     model    = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
 
-    client = ChatGPTClient(api_key, model)
+    client = OpenAIClient(api_key, model)
 
     # show available models
     print("Available models:", client.list_models())
 
     # sample run
     prompt = "What are the benefits of exercise?"
-    client.call_chatgpt_with_history(prompt)
+    chat_response = client.call_chatgpt_with_history(prompt)
+

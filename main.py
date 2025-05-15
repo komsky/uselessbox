@@ -7,8 +7,8 @@ from halo import Halo
 from dotenv import load_dotenv
 import openai
 from openai import OpenAI
-from voice_activity_detection import VADAudio
-from chat_gpt_client import ChatGPTClient
+from cobravoice import CobraDetector
+from chat_gpt_client import OpenAIClient
 import sounds
 from wakeword import WakeWordDetector
 import numpy as np
@@ -24,6 +24,7 @@ import random
 import wave
 from datetime import datetime
 
+
 EVENTS_URL = "http://127.0.0.1:5000/events"
 
 class MainApplication:
@@ -32,13 +33,13 @@ class MainApplication:
         
         logging.debug("Logging configured.Starting Main Application")
         self.args = args
-        #self.vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
-        self.chat_gpt_client =  ChatGPTClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
+        self.detector = CobraDetector(access_key=os.getenv("PICOVOICE"))
+        self.ai_client =  OpenAIClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
         self.keyword_file_path = os.path.join(self.current_folder, "hey-octo_en_raspberry-pi_v3_0_0.ppn")
-        self.wakeword = WakeWordDetector(access_key=os.getenv("PORCUPINE"),keyword_paths="hey-octo_en_raspberry-pi_v3_0_0.ppn")
+        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths="hey-octo_en_raspberry-pi_v3_0_0.ppn")
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -84,23 +85,33 @@ class MainApplication:
         logging.debug("Waiting for wakeword...")   
         await self.wakeword.wait_for_wakeword()
         logging.debug("Wakeword detected, starting command processing")
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        wav_path = os.path.join(self.args.savewav, f"utt_{ts}.wav")
         try:
-            wav_data = bytearray()
-            vad = VADAudio(aggressiveness=self.args.vad_aggressiveness, device=self.args.device, input_rate=self.args.rate, file=self.args.file)
-            data = vad.read()
-            arr  = np.frombuffer(data, np.int16)
             print("Speak now...")
             wsled.listening()
-            
+            print(f"Waiting for utterance (threshold={args.threshold}, silence={args.silence_timeout}s)")
+            pcm = await self.detector.wait_for_utterance(args.threshold, args.silence_timeout)
+
+            self.detector.save_wav(pcm, wav_path)
+            print(f"Saved utterance to {wav_path}")
             wsled.thinking()
-            
-            if os.path.exists(saved_file):
-                os.remove(saved_file)
+            #use whisper for stt and then ask chatgpt for response
+            stt = self.ai_client.transcribe_audio(wav_path)
+            print(f"Transcribed text: {stt}")
+            #use chatgpt for response
+            response = self.ai_client.call_chatgpt(stt)
+            print(f"ChatGPT response: {response}")
+            #use tts for response
+            await speak.speak_male(response)
             # await self.wled.stop()
             return True
         finally:
-            vad.close() 
-
+            wsled.off()
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+            self.listening_for_command = False
+            print("Listening stopped.")
     
     def subscribe_toggle(self):
         while True:
