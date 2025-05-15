@@ -38,7 +38,7 @@ class MainApplication:
         self.listening_for_command = False
         self.current_folder = os.getcwd()
         self.keyword_file_path = os.path.join(self.current_folder, "hey-octo_en_raspberry-pi_v3_0_0.ppn")
-        self.wakeword = WakeWordDetector(keyword_file_path=self.keyword_file_path)
+        self.wakeword = WakeWordDetector(access_key=os.getenv("PORCUPINE"),keyword_paths="hey-octo_en_raspberry-pi_v3_0_0.ppn")
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -68,21 +68,9 @@ class MainApplication:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         logging.debug("Logging configured")
 
-    def listen_for_command(self):
-        logging.debug("Waiting for wakeword...")
-        
-        while True:
-            try:
-                index, keyword = self.wakeword.wait_for_wakeword()
-                logging.debug(f"Detected '{keyword}' (index: {index})")
-                if keyword == "hey-octo":
-                    break
-            except KeyboardInterrupt:
-                logging.debug("Interrupted by user.")
-                return False
-            except Exception as e:
-                logging.debug(f"Error: {e}")
-                return False
+    async def listen_for_command(self):
+        logging.debug("Waiting for wakeword...")   
+        await self.wakeword.wait_for_wakeword()
         logging.debug("Wakeword detected, starting command processing")
 
         wav_data = bytearray()
@@ -125,7 +113,7 @@ class MainApplication:
                 # self.oled.write_smart_split("Thinking...")
                 arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
                 wsled.speaking()
-                asyncio.run(speak.speak_male(arnold_says))
+                await speak.speak_male(arnold_says)
                 TopServo.down()
         if os.path.exists(saved_file):
             os.remove(saved_file)
@@ -222,11 +210,10 @@ class MainApplication:
         self.topServo.zero() 
 
     def run(self):
-        # self.subscribe_toggle()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.wait_for_wakeword())
-        
-                    
+        # # self.subscribe_toggle()
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(self.listen_for_command())     
+        asyncio.run(self.listen_for_command())
 
 if __name__ == '__main__':
     load_dotenv()

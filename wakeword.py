@@ -2,8 +2,10 @@ import os
 import argparse
 import asyncio
 from datetime import datetime
+
 import pvporcupine
 from pvrecorder import PvRecorder
+
 
 class WakeWordDetector:
     """
@@ -17,37 +19,49 @@ class WakeWordDetector:
         )
         keyword_index, keyword = await detector.wait_for_wakeword()
 
-    The wait_for_wakeword() method can be called in a loop ? each call reinitializes audio resources and cleans up afterward.
+    Accepts a single string or list of paths for keyword_paths. Each call to
+    wait_for_wakeword() reinitializes resources and cleans up afterward.
     """
 
     def __init__(
         self,
-        keyword_paths: list,
-        access_key: str = None,
+        access_key: str,
+        keyword_paths,
         sensitivities: list = None,
         library_path: str = None,
         model_path: str = None,
         device_index: int = -1,
     ):
-        # Store configuration ? actual Porcupine and recorder are initialized per call
-        # if access key is none 
-        if access_key is None:
-            self.access_key =os.getenv("PORCUPINE")
-        else:
-            self.access_key = access_key
+        # Normalize keyword_paths to list
+        if isinstance(keyword_paths, str):
+            keyword_paths = [keyword_paths]
+        if not isinstance(keyword_paths, (list, tuple)) or not keyword_paths:
+            raise ValueError("`keyword_paths` must be a non-empty string or list of strings.")
 
-        self.keyword_paths = keyword_paths
-        self.sensitivities = sensitivities or [0.5] * len(keyword_paths)
-        if len(self.sensitivities) != len(self.keyword_paths):
+        # Expand and validate files
+        validated_paths = []
+        for path in keyword_paths:
+            p = os.path.expanduser(path)
+            if not os.path.isfile(p):
+                raise OSError(f"Couldn't find keyword file at '{path}'.")
+            validated_paths.append(p)
+        self.keyword_paths = validated_paths
+
+        # Sensitivities
+        if sensitivities is None:
+            sensitivities = [0.5] * len(self.keyword_paths)
+        if len(sensitivities) != len(self.keyword_paths):
             raise ValueError("Number of sensitivities must match number of keywords.")
+        self.sensitivities = sensitivities
 
+        self.access_key = access_key
         self.library_path = library_path
         self.model_path = model_path
         self.device_index = device_index
 
         # Precompute human-readable phrases from keyword paths
         self._keywords = []
-        for path in keyword_paths:
+        for path in self.keyword_paths:
             name = os.path.basename(path).replace('.ppn', '').split('_')
             phrase = ' '.join(name[:-6]) if len(name) > 6 else name[0]
             self._keywords.append(phrase)
@@ -59,8 +73,8 @@ class WakeWordDetector:
         Returns:
             (keyword_index: int, keyword: str)
 
-        This method initializes its own Porcupine and recorder instances,
-        so it can be called repeatedly in a loop with clean resource management.
+        Initializes its own Porcupine and recorder instances
+        and cleans up afterward, so it can run in a loop.
         """
         # Initialize Porcupine and recorder
         porcupine = pvporcupine.create(
@@ -80,16 +94,11 @@ class WakeWordDetector:
 
         try:
             while True:
-                # Read from microphone (blocking) in executor
                 pcm = await loop.run_in_executor(None, recorder.read)
-                # Process audio in executor
                 result = await loop.run_in_executor(None, porcupine.process, pcm)
-
                 if result >= 0:
-                    # Detected keyword: return index and phrase
                     return result, self._keywords[result]
         finally:
-            # Always cleanup resources, even if cancelled or error
             recorder.delete()
             porcupine.delete()
 
@@ -138,9 +147,6 @@ def main():
         print("Interrupted by user.")
     except Exception as e:
         print(f"Error: {e}")
-    finally:
-        # No persistent resources to close here
-        pass
 
 
 if __name__ == '__main__':
