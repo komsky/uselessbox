@@ -32,7 +32,7 @@ class MainApplication:
         
         logging.debug("Logging configured.Starting Main Application")
         self.args = args
-        self.vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
+        #self.vad_audio = VADAudio(aggressiveness=args.vad_aggressiveness, device=args.device, input_rate=args.rate, file=args.file)
         self.chat_gpt_client =  ChatGPTClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
@@ -65,60 +65,69 @@ class MainApplication:
             sys.exit(1)
 
     def configure_logging(self):
-        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+        logging.basicConfig(
+            level    = logging.DEBUG,             # capture DEBUG and above
+            stream   = sys.stdout,                # send logs to stdout
+            format   = '%(asctime)s %(levelname)-8s %(message)s',
+            datefmt  = '%Y-%m-%d %H:%M:%S'
+        )
         logging.debug("Logging configured")
 
     async def listen_for_command(self):
         logging.debug("Waiting for wakeword...")   
         await self.wakeword.wait_for_wakeword()
         logging.debug("Wakeword detected, starting command processing")
+        try:
+            wav_data = bytearray()
+            vad = VADAudio(aggressiveness=self.args.vad_aggressiveness, device=self.args.device, input_rate=self.args.rate, file=self.args.file)
+            data = vad.read()
+            arr  = np.frombuffer(data, np.int16)
+            print("Speak now...")
+            wsled.listening()
+            frames = vad.vad_collector()
+            for frame in frames:
+                if frame is not None:
+                    if self.spinner:
+                        self.spinner.start()
+                        # await self.wled.pulse() 
+                    wav_data.extend(frame)
+                else:
+                    if self.spinner:
+                        self.spinner.stop()
+                    break
+            wsled.thinking()
+            date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
+            saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
+            vad.write_wav(saved_file, wav_data)
+            with open(saved_file, "rb") as audio_file:
+                api_response = self.openAiClient.audio.transcriptions.create(
+                    file=audio_file,       # your audio file handle
+                    model="whisper-1",     # the Whisper model
+                    language='pl',         # auto-detect if you omit this
+                    temperature=0,         # deterministic output
+                    response_format="text" # you?ll get resp.text back
+                )
 
-        wav_data = bytearray()
-        vad = VADAudio(aggressiveness=self.args.vad_aggressiveness, device=self.args.device, input_rate=self.args.rate, file=self.args.file)
-        data = vad.read()
-        arr  = np.frombuffer(data, np.int16)
-        print("Speak now...")
-        wsled.listening()
-        frames = vad.vad_collector()
-        for frame in frames:
-            if frame is not None:
-                if self.spinner:
-                    self.spinner.start()
-                    # await self.wled.pulse() 
-                wav_data.extend(frame)
-            else:
-                if self.spinner:
-                    self.spinner.stop()
-                break
-        wsled.thinking()
-        date_piece = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f.wav")
-        saved_file = os.path.join(self.args.savewav, f'savewav_{date_piece}')
-        vad.write_wav(saved_file, wav_data)
-        with open(saved_file, "rb") as audio_file:
-            api_response = self.openAiClient.audio.transcriptions.create(
-                file=audio_file,       # your audio file handle
-                model="whisper-1",     # the Whisper model
-                language='pl',         # auto-detect if you omit this
-                temperature=0,         # deterministic output
-                response_format="text" # you?ll get resp.text back
-            )
+                recognized_text = api_response;
+                print(f"You said: {recognized_text}")            
+                
+                if self.end_command in recognized_text:
+                    return False
 
-            recognized_text = api_response;
-            print(f"You said: {recognized_text}")            
-            
-            if self.end_command in recognized_text:
-                return False
+                elif not api_response.strip() == "":
+                    # self.oled.write_smart_split("Thinking...")
+                    arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
+                    wsled.speaking()
+                    await speak.speak_male(arnold_says)
+                    TopServo.down()
+            if os.path.exists(saved_file):
+                os.remove(saved_file)
+            # await self.wled.stop()
+            return True
+        finally:
+            vad.close()
+            vad.delete()    
 
-            elif not api_response.strip() == "":
-                # self.oled.write_smart_split("Thinking...")
-                arnold_says = self.chat_gpt_client.call_chatgpt_with_history(api_response)
-                wsled.speaking()
-                await speak.speak_male(arnold_says)
-                TopServo.down()
-        if os.path.exists(saved_file):
-            os.remove(saved_file)
-        # await self.wled.stop()
-        return True
     
     def subscribe_toggle(self):
         while True:
