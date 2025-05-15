@@ -7,19 +7,21 @@ from datetime import datetime
 from openai import OpenAI
 
 SAMPLE_RATE = 16000
-FRAME_MS   = 30
-FRAME_BYTES = int(SAMPLE_RATE * FRAME_MS / 1000) * 2  # 16-bit mono
+FRAME_DURATION_MS = 30
+FRAME_SAMPLES = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
+FRAME_BYTES   = FRAME_SAMPLES * 2
 
 def record_utterance(aggressiveness=3, timeout_s=5):
     """Record until we see speech, then until we see silence again."""
     vad = webrtcvad.Vad(aggressiveness)
     pa  = pyaudio.PyAudio()
-    stream = pa.open(format=pyaudio.paInt16,
-                     channels=1,
-                     rate=SAMPLE_RATE,
-                     input=True,
-                     frames_per_buffer=FRAME_BYTES)
-
+    stream = pa.open(
+        format=pyaudio.paInt16,
+        channels=1,
+        rate=SAMPLE_RATE,
+        input=True,
+        frames_per_buffer=FRAME_SAMPLES,
+    )
     print("Waiting for you to start speaking?")
     # wait for speech
     while True:
