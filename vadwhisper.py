@@ -10,18 +10,23 @@ SAMPLE_RATE = 16000
 FRAME_DURATION_MS = 30
 FRAME_SAMPLES = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
 FRAME_BYTES   = FRAME_SAMPLES * 2
+RESPEAKER_RATE = 16000
+RESPEAKER_CHANNELS = 2 
+RESPEAKER_WIDTH = 2
+# run getDeviceInfo.py to get index
+RESPEAKER_INDEX = 0  # refer to input device id
+CHUNK = 1024
 
 def record_utterance(aggressiveness=3, timeout_s=5):
     """Record until we see speech, then until we see silence again."""
     vad = webrtcvad.Vad(aggressiveness)
     pa  = pyaudio.PyAudio()
     stream = pa.open(
-        format=pyaudio.paInt16,
-        channels=1,
-        rate=SAMPLE_RATE,
-        input=True,
-        frames_per_buffer=FRAME_SAMPLES,
-    )
+                rate=RESPEAKER_RATE,
+                format=pa.get_format_from_width(RESPEAKER_WIDTH),
+                channels=RESPEAKER_CHANNELS,
+                input=True,
+                input_device_index=RESPEAKER_INDEX)
     print("Waiting for you to start speaking?")
     # wait for speech
     while True:
