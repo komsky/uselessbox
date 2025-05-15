@@ -33,26 +33,13 @@ def _set_all(color):
     _strip.show()
 
 
-def off():
-    """Turn all LEDs off and stop any running animation."""
-    _stop_animation()
-    _set_all(Color(0, 0, 0))
-
-
-def on():
-    """Turn all LEDs on (warm white)."""
-    _stop_animation()
-    _set_all(Color(192, 128, 100))
-
-
 def _stop_animation():
     """Internal: stop the current animation if running."""
     global _current_animation
-    with _animation_lock:
-        if _current_animation and _current_animation.is_alive():
-            _current_animation.stop()
-            _current_animation.join()
-        _current_animation = None
+    if _current_animation and _current_animation.is_alive():
+        _current_animation.stop()
+        _current_animation.join()
+    _current_animation = None
 
 
 def _start_animation(anim):
@@ -62,6 +49,18 @@ def _start_animation(anim):
         _stop_animation()
         _current_animation = anim
         _current_animation.start()
+
+
+def on():
+    """Turn all LEDs on (warm white)."""
+    _stop_animation()
+    _set_all(Color(192, 128, 100))
+
+
+def off():
+    """Turn all LEDs off."""
+    _stop_animation()
+    _set_all(Color(0, 0, 0))
 
 
 class Animation(threading.Thread):
@@ -85,18 +84,17 @@ class ListeningAnimation(Animation):
     """Alexa-like blue pulsing ring."""
     def run(self):
         _init_strip()
-        base_color = (0, 0, 50)
+        base_brightness = 50
         max_brightness = 150
         step = 10
-        brightness = base_color[2]
+        brightness = base_brightness
         direction = 1
         while not self.stopped:
-            # pulse brightness
             brightness += direction * step
-            if brightness >= max_brightness or brightness <= base_color[2]:
+            if brightness >= max_brightness or brightness <= base_brightness:
                 direction *= -1
-                brightness = max(base_color[2], min(brightness, max_brightness))
-            _set_all(Color(base_color[0], base_color[1], brightness))
+                brightness = max(base_brightness, min(brightness, max_brightness))
+            _set_all(Color(0, 0, brightness))
             time.sleep(0.05)
 
 
@@ -112,16 +110,16 @@ class SpeakingAnimation(Animation):
         _init_strip()
         colors = [Color(0, 0, 255), Color(0, 200, 255), Color(0, 150, 200)]
         idx = 0
+        num = _strip.numPixels()
         while not self.stopped:
-            # wave across strip
-            for i in range(_strip.numPixels()):
-                if self.stopped: return
-                color = colors[(idx + i) % len(colors)]
-                _strip.setPixelColor(i, color)
+            for i in range(num):
+                if self.stopped:
+                    return
+                _strip.setPixelColor(i, colors[(idx + i) % len(colors)])
             _strip.show()
             idx = (idx + 1) % len(colors)
             time.sleep(0.1)
-        
+
 
 def speaking():
     """Start speaking animation."""
@@ -158,9 +156,7 @@ class KnightRiderAnimation(Animation):
         direction = 1
         tail = 3
         while not self.stopped:
-            # clear all
             _set_all(Color(0, 0, 0))
-            # draw tail
             for t in range(tail):
                 idx = pos - t * direction
                 if 0 <= idx < length:
@@ -168,7 +164,7 @@ class KnightRiderAnimation(Animation):
                     _strip.setPixelColor(idx, Color(fade, 0, 0))
             _strip.show()
             pos += direction
-            if pos == length - 1 or pos == 0:
+            if pos in (0, length - 1):
                 direction *= -1
             time.sleep(0.05)
 
@@ -178,8 +174,8 @@ def knightrider():
     anim = KnightRiderAnimation()
     _start_animation(anim)
 
+
 if __name__ == "__main__":
-    # Example usage
     print("Running example animations...")
     print("On")
     on()
@@ -201,11 +197,3 @@ if __name__ == "__main__":
     time.sleep(5)
     print("Off")
     off()
-# Example usage:
-# listening()
-# time.sleep(5)
-# speaking()
-# time.sleep(5)
-# thinking()
-# time.sleep(5)
-# knightrider()
