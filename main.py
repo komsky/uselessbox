@@ -65,7 +65,7 @@ class MainApplication:
             logging.debug(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
-    def configure_logging():
+    def configure_logging(self):
         log_dir = '/home/komsky/useless'
         log_file = os.path.join(log_dir, 'logs.log')
 
