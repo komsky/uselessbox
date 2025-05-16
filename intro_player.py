@@ -77,6 +77,17 @@ def play_random_coral():
     # _play_in_background(choice)
     play_wav_speed(choice)
 
+def play_random_nonet(wakeword: str):
+    if wakeword not in ["hey-octo", "hey-coral"]:
+        raise ValueError("Invalid wakeword. Choose 'ash' or 'coral'.")
+    if wakeword == "hey-octo":
+        files = glob.glob(f"audio/tts/ash_nonet_*.wav")
+    else:
+        files = glob.glob(f"audio/tts/coral_nonet_*.wav")
+    if not files:
+        raise FileNotFoundError(f"No {wakeword} intros found in audio/tts/")
+    choice = random.choice(files)
+    play_wav_speed(choice)
 # Example usage:
 if __name__ == "__main__":
     print("Triggering a random Ash intro?")

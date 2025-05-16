@@ -20,8 +20,9 @@ import requests
 import wsled
 import random
 from datetime import datetime
-from intro_player import play_random_ash,play_random_coral
+from intro_player import play_random_ash,play_random_coral, play_random_nonet
 import threading
+import socket
 
 EVENTS_URL = "http://127.0.0.1:5000/events"
 
@@ -79,6 +80,21 @@ class MainApplication:
         root.addHandler(sh)
         logging.debug("Logging configured")
 
+    async def is_internet_available(self, timeout: float = 1.0) -> bool:
+        """
+        Try to open a socket to a public DNS server.
+        Returns True if successful within `timeout`, else False.
+        """
+        def _check():
+            try:
+                sock = socket.create_connection(("8.8.8.8", 53), timeout=timeout)
+                sock.close()
+                return True
+            except OSError:
+                return False
+
+        return await asyncio.get_event_loop().run_in_executor(None, _check)
+    
     async def listen_for_command(self):
         logging.debug("Waiting for wakeword...")   
         result, keyword = await self.wakeword.wait_for_wakeword()
@@ -102,6 +118,11 @@ class MainApplication:
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         wav_path = os.path.join(self.args.savewav, f"utt_{ts}.wav")
         try:
+            if not await self.is_internet_available():
+                print("No internet connection detected ? playing offline placeholder only.")                
+                play_random_nonet(active_keyword)
+                return True  # servo down & LED off in finally
+            
             print("Speak now...")
             wsled.listening()
             print(f"Waiting for utterance ")
