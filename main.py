@@ -120,7 +120,7 @@ class MainApplication:
         try:
             if not await self.is_internet_available():
                 print("No internet connection detected ? playing offline placeholder only.")                
-                play_random_nonet(active_keyword)
+                play_random_nonet(keyword)
                 return True  # servo down & LED off in finally
             
             print("Speak now...")
