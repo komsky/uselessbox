@@ -62,7 +62,8 @@ def play_random_ash():
     if not files:
         raise FileNotFoundError("No ash intros found in audio/tts/ash/")
     choice = random.choice(files)
-    _play_in_background(choice)
+    # _play_in_background(choice)
+    play_wav_speed(choice)
 
 def play_random_coral():
     """
@@ -73,7 +74,8 @@ def play_random_coral():
     if not files:
         raise FileNotFoundError("No coral intros found in audio/tts/coral/")
     choice = random.choice(files)
-    _play_in_background(choice)
+    # _play_in_background(choice)
+    play_wav_speed(choice)
 
 # Example usage:
 if __name__ == "__main__":
