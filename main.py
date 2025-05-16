@@ -21,7 +21,7 @@ import wsled
 import random
 from datetime import datetime
 from intro_player import play_random_ash,play_random_coral
-
+import threading
 
 EVENTS_URL = "http://127.0.0.1:5000/events"
 
@@ -121,8 +121,7 @@ class MainApplication:
             if active_keyword == "Hey Octo! ":
                 await speak.speak_male(response)
             elif active_keyword == "Hey Coral! ":
-                await speak.speak_female(response)
-            
+                await speak.speak_female(response)            
             return True
         finally:
             self.topServo.down()
@@ -222,10 +221,22 @@ class MainApplication:
         self.topServo.zero() 
 
     def run(self):
-        # # self.subscribe_toggle()
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(self.listen_for_command())     
-        asyncio.run(self.listen_for_command())
+        # start the toggle-watcher in its own daemon thread
+        t = threading.Thread(target=self.subscribe_toggle, daemon=True)
+        t.start()
+
+        # now run our async voice-listener in a continuous loop
+        asyncio.run(self._async_listen_loop())
+
+    async def _async_listen_loop(self):
+        """Keep waiting for wake-word commands forever."""
+        while True:
+            try:
+                await self.listen_for_command()
+            except Exception as e:
+                logging.error(f"Error in listen_for_command loop: {e}")
+                # small back-off before retrying
+                await asyncio.sleep(1)
 
 if __name__ == '__main__':
     load_dotenv()
