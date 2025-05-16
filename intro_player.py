@@ -2,59 +2,86 @@
 import wave
 import numpy as np
 import pyaudio
-import sys
+import glob
+import random
+import threading
 
 SPEED = 1.3  # playback speed multiplier
 
 def play_wav_speed(path: str, speed: float = SPEED):
-    # 1. Open the WAV and read raw PCM
+    """Blocking: load a WAV, time-compress it by SPEED, and play at native rate."""
+    # 1. Read WAV
     wf = wave.open(path, 'rb')
     n_channels = wf.getnchannels()
     sampwidth  = wf.getsampwidth()
     framerate  = wf.getframerate()
-    n_frames   = wf.getnframes()
-    raw_data   = wf.readframes(n_frames)
+    frames     = wf.readframes(wf.getnframes())
     wf.close()
 
-    # 2. Decode to int16 array and reshape for stereo/mono
-    pcm = np.frombuffer(raw_data, dtype=np.int16)
-    pcm = pcm.reshape(-1, n_channels)  # shape = (n_frames, channels)
+    # 2. Decode & reshape
+    pcm = np.frombuffer(frames, dtype=np.int16).reshape(-1, n_channels)
 
-    # 3. Time-compress by 'speed' factor (we shorten the signal)
+    # 3. Time-compress each channel
     orig_len = pcm.shape[0]
     new_len  = int(orig_len / speed)
     if new_len < 1:
-        print("Audio too short to speed up.")
         return
 
-    # 4. Use linear interpolation to compress each channel
-    indices_old = np.arange(orig_len)
-    indices_new = np.linspace(0, orig_len, new_len, endpoint=False)
-    pcm_fast = np.vstack([
-        np.interp(indices_new, indices_old, pcm[:, ch]).astype(np.int16)
+    old_idx = np.arange(orig_len)
+    new_idx = np.linspace(0, orig_len, new_len, endpoint=False)
+    fast_pcm = np.vstack([
+        np.interp(new_idx, old_idx, pcm[:, ch]).astype(np.int16)
         for ch in range(n_channels)
-    ]).T  # back to shape (new_len, channels)
+    ]).T
 
-    # 5. Initialize PyAudio and open output stream at the WAV's native rate
-    p = pyaudio.PyAudio()
-    stream = p.open(
-        format    = p.get_format_from_width(sampwidth),
+    # 4. Play via PyAudio at WAV?s sample rate
+    pa = pyaudio.PyAudio()
+    stream = pa.open(
+        format    = pa.get_format_from_width(sampwidth),
         channels  = n_channels,
         rate      = framerate,
         output    = True,
         frames_per_buffer = 1024
     )
-
-    # 6. Play the compressed data
-    print(f"Playing {path} at {speed}� speed...")
-    stream.write(pcm_fast.tobytes())
+    stream.write(fast_pcm.tobytes())
     stream.stop_stream()
     stream.close()
-    p.terminate()
-    print("Done.")
+    pa.terminate()
 
+def _play_in_background(path: str):
+    """Helper to fire-and-forget playback."""
+    t = threading.Thread(target=play_wav_speed, args=(path,), daemon=True)
+    t.start()
+
+def play_random_ash():
+    """
+    Pick one random 'ash' intro WAV from audio/tts/ash/
+    and play it at 1.3� speed on the left speaker.
+    """
+    files = glob.glob("audio/tts/ash/ash_intro_*.wav")
+    if not files:
+        raise FileNotFoundError("No ash intros found in audio/tts/ash/")
+    choice = random.choice(files)
+    _play_in_background(choice)
+
+def play_random_coral():
+    """
+    Pick one random 'coral' intro WAV from audio/tts/coral/
+    and play it at 1.3� speed on the right speaker.
+    """
+    files = glob.glob("audio/tts/coral/coral_intro_*.wav")
+    if not files:
+        raise FileNotFoundError("No coral intros found in audio/tts/coral/")
+    choice = random.choice(files)
+    _play_in_background(choice)
+
+# Example usage:
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python play_wav_speed.py path/to/file.wav")
-        sys.exit(1)
-    play_wav_speed(sys.argv[1])
+    print("Triggering a random Ash intro?")
+    play_random_ash()
+    # your main thread continues immediately
+    import time; time.sleep(3)
+
+    print("Triggering a random Coral intro?")
+    play_random_coral()
+    time.sleep(3)

@@ -5,13 +5,11 @@ import argparse
 from datetime import datetime
 from halo import Halo
 from dotenv import load_dotenv
-import openai
 from openai import OpenAI
 from cobravoice import CobraDetector
 from chat_gpt_client import OpenAIClient
 import sounds
 from wakeword import WakeWordDetector
-import numpy as np
 import speak
 import asyncio
 import shutil
@@ -21,8 +19,8 @@ from top import TopServo
 import requests
 import wsled
 import random
-import wave
 from datetime import datetime
+from intro_player import play_random_ash,play_random_coral
 
 
 EVENTS_URL = "http://127.0.0.1:5000/events"
@@ -38,8 +36,9 @@ class MainApplication:
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
-        self.keyword_file_path = os.path.join(self.current_folder, "hey-octo_en_raspberry-pi_v3_0_0.ppn")
-        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths="hey-octo_en_raspberry-pi_v3_0_0.ppn")
+        self.octo_keyword =  "hey-octo_en_raspberry-pi_v3_0_0.ppn"
+        self.coral_keyword = "hey-coral_en_raspberry-pi_v3_0_0.ppn"
+        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths=[self.octo_keyword, self.coral_keyword])
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -80,10 +79,25 @@ class MainApplication:
         root.addHandler(sh)
         logging.debug("Logging configured")
 
-
     async def listen_for_command(self):
         logging.debug("Waiting for wakeword...")   
-        await self.wakeword.wait_for_wakeword()
+        result, keyword = await self.wakeword.wait_for_wakeword()
+        active_keyword = None
+        if keyword == self.octo_keyword:
+            print("Detected wake word 'Hey Octo'")
+            active_keyword = "Hey Octo! "
+            TopServo.up()
+            wsled.on()
+            play_random_ash()
+        elif keyword == self.coral_keyword:
+            print("Detected wake word 'Hey Coral'")
+            active_keyword = "Hey Coral! "
+            TopServo.up()
+            wsled.on()
+            play_random_coral()
+        else:
+            print(f"Detected unknown wake word: {keyword}")
+            return False
         logging.debug("Wakeword detected, starting command processing")
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         wav_path = os.path.join(self.args.savewav, f"utt_{ts}.wav")
@@ -100,13 +114,18 @@ class MainApplication:
             stt = self.ai_client.transcribe_audio(wav_path)
             print(f"Transcribed text: {stt}")
             #use chatgpt for response
-            response = self.ai_client.call_chatgpt_with_history(stt)
+            response = self.ai_client.call_chatgpt_with_history(active_keyword + stt)
             print(f"ChatGPT response: {response}")
             #use tts for response
-            await speak.speak_male(response)
-            # await self.wled.stop()
+            wsled.speaking()
+            if active_keyword == "Hey Octo! ":
+                await speak.speak_male(response)
+            elif active_keyword == "Hey Coral! ":
+                await speak.speak_female(response)
+            
             return True
         finally:
+            TopServo.down()
             wsled.off()
             if os.path.exists(wav_path):
                 os.remove(wav_path)
