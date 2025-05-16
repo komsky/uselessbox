@@ -1,0 +1,14 @@
+[Unit]
+Description=Useless Box Daemon
+After=network.target
+
+[Service]
+Type=simple
+
+WorkingDirectory=/home/komsky/uselessbox
+ExecStart=/home/komsky/uselessbox/venv/bin/python /home/komsky/uselessbox/main.py
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
