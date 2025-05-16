@@ -83,13 +83,13 @@ class MainApplication:
         logging.debug("Waiting for wakeword...")   
         result, keyword = await self.wakeword.wait_for_wakeword()
         active_keyword = None
-        if keyword == self.octo_keyword:
+        if keyword == "hey-octo":
             print("Detected wake word 'Hey Octo'")
             active_keyword = "Hey Octo! "
             TopServo.up()
             wsled.on()
             play_random_ash()
-        elif keyword == self.coral_keyword:
+        elif keyword == "hey-coral":
             print("Detected wake word 'Hey Coral'")
             active_keyword = "Hey Coral! "
             TopServo.up()
