@@ -10,51 +10,42 @@ import traceback
 
 load_dotenv()
 
-# === Audio rate constants ===
-_BASE_RATE   = 24_000           # native sample rate from the TTS model
-_OUT_RATE    = _BASE_RATE       # use the same rate for playback & WAV files
+# === Constants ===
+_BASE_RATE   = 24_000           # native TTS rate
 DEFAULT_GAIN = 2.0
 
-# choose your device if needed; here we leave the default input and pick the first output
-sd.default.device = (None, 0)
-
-# set up OpenAI
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-STYLE = (
-    "Tone: witty, dry sarcasm, cocky confidence.\n"
-    "Emotion: amused contempt.\n"
-    "Delivery: quick pace, short pauses, ends with a smug chuckle."
-)
-
+# ensure our responses folder exists
 def _ensure_dir():
     os.makedirs("responses", exist_ok=True)
 
+# open a stereo WAV at the base rate
 def _open_wav(ts: str):
     wf = wave.open(f"responses/{ts}.wav", "wb")
-    wf.setnchannels(2)             # stereo
-    wf.setsampwidth(2)             # 16-bit
-    wf.setframerate(_OUT_RATE)     # write at correct rate
+    wf.setnchannels(2)
+    wf.setsampwidth(2)           # 16-bit
+    wf.setframerate(_BASE_RATE)  # real TTS rate
     return wf
 
+# core routine
 async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_GAIN):
     _ensure_dir()
     ts = time.strftime("%Y%m%d-%H%M%S")
     print(f"[{ts}] Speaking ({'L' if left else 'R'}) ? {text!r} via ?{voice}?")
 
-    wf = _open_wav(ts)
-    buf = bytearray()
+    # 1) Figure out your hardware's native playback rate:
+    dev_info     = sd.query_devices(kind='output')
+    play_rate    = int(dev_info['default_samplerate'])
+    wf           = _open_wav(ts)
+    buf          = bytearray()
 
     try:
-        # open output stream with low latency
+        # 2) Open an output stream at that rate
         with sd.OutputStream(
-            samplerate=_OUT_RATE,
+            samplerate=play_rate,
             channels=2,
-            dtype="int16",
-            latency="low",
-            blocksize=1024
+            dtype='int16',
+            latency='low'
         ) as stream:
-            # start TTS streaming
             async with client.audio.speech.with_streaming_response.create(
                 model="gpt-4o-mini-tts",
                 voice=voice,
@@ -64,38 +55,52 @@ async def _speak_chan(text: str, voice: str, left: bool, gain: float = DEFAULT_G
             ) as resp:
                 async for chunk in resp.iter_bytes():
                     buf.extend(chunk)
-                    # only process in whole-sample increments
-                    n = (len(buf) // 2) * 2
+                    n = (len(buf)//2)*2
                     if n == 0:
                         continue
 
-                    frame_bytes = buf[:n]
-                    buf = buf[n:]
-
-                    # decode to int16, apply gain, clip
+                    # decode & gain
                     pcm = (
-                        np.frombuffer(frame_bytes, dtype=np.int16)
+                        np.frombuffer(buf[:n], dtype=np.int16)
                           .astype(np.int32)
-                          .clip(-32768, 32767) * gain
+                    )
+                    buf = buf[n:]
+                    pcm = np.clip(pcm * gain, -32768, 32767).astype(np.int16)
+
+                    # 3) Resample from 24 kHz ? play_rate
+                    orig_len = pcm.shape[0]
+                    new_len  = int(orig_len * play_rate / _BASE_RATE)
+                    if new_len < 1:
+                        continue
+                    resampled = np.interp(
+                        np.linspace(0, orig_len, new_len, endpoint=False),
+                        np.arange(orig_len),
+                        pcm
                     ).astype(np.int16)
 
-                    # build stereo frame
+                    # build stereo
                     if left:
-                        stereo = np.column_stack((pcm, np.zeros_like(pcm)))
+                        stereo = np.column_stack((resampled, np.zeros_like(resampled)))
                     else:
-                        stereo = np.column_stack((np.zeros_like(pcm), pcm))
+                        stereo = np.column_stack((np.zeros_like(resampled), resampled))
 
-                    # write to audio out and to file
+                    # play and also write the ORIGINAL (non-resampled) stereo into the WAV
                     stream.write(stereo)
-                    wf.writeframes(stereo.tobytes())
+                    # for file, we want the true-speed 24 kHz, so re-build it from pcm:
+                    if left:
+                        wf.writeframes(np.column_stack((pcm, np.zeros_like(pcm))).tobytes())
+                    else:
+                        wf.writeframes(np.column_stack((np.zeros_like(pcm), pcm)).tobytes())
 
-            wf.close()
-            print(f"Saved as responses/{ts}.wav")
+        wf.close()
+        print(f"Saved as responses/{ts}.wav")
 
     except Exception:
         print(f"[{ts}] Playback or save failed!")
         traceback.print_exc()
 
+
+# public APIs
 async def speak_female(text: str):
     """Left-channel coral (female)."""
     await _speak_chan(text, voice="coral", left=True)
@@ -104,8 +109,16 @@ async def speak_male(text: str):
     """Right-channel ash (male)."""
     await _speak_chan(text, voice="ash", left=False)
 
-# test CLI
+
 if __name__ == "__main__":
+    # make sure your client & STYLE are defined up top as before
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    STYLE = (
+        "Tone: witty, dry sarcasm, cocky confidence.\n"
+        "Emotion: amused contempt.\n"
+        "Delivery: quick pace, short pauses, ends with a smug chuckle."
+    )
+
     asyncio.run(speak_female("Hey, what's up, octo-honey?"))
     asyncio.run(speak_male("Leave me alone, you octo-pinky-winky-dinky!"))
     asyncio.run(speak_female("That's rude! You want a piece of me?"))
