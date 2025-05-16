@@ -86,13 +86,13 @@ class MainApplication:
         if keyword == "hey-octo":
             print("Detected wake word 'Hey Octo'")
             active_keyword = "Hey Octo! "
-            TopServo.up()
+            self.topServo.up()
             wsled.on()
             play_random_ash()
         elif keyword == "hey-coral":
             print("Detected wake word 'Hey Coral'")
             active_keyword = "Hey Coral! "
-            TopServo.up()
+            self.topServo.up()
             wsled.on()
             play_random_coral()
         else:
@@ -125,7 +125,7 @@ class MainApplication:
             
             return True
         finally:
-            TopServo.down()
+            self.topServo.down()
             wsled.off()
             if os.path.exists(wav_path):
                 os.remove(wav_path)
