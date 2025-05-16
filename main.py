@@ -65,20 +65,35 @@ class MainApplication:
             logging.debug(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
-    def configure_logging(self):
+    def configure_logging():
+        log_dir = '/home/komsky/useless'
+        log_file = os.path.join(log_dir, 'logs.log')
+
+        # ensure log directory exists
+        os.makedirs(log_dir, exist_ok=True)
+
         root = logging.getLogger()              # the root logger
         root.setLevel(logging.DEBUG)            # capture DEBUG and above
 
-        sh = logging.StreamHandler(sys.stdout)  # send logs to stdout
-        sh.setLevel(logging.DEBUG)              # only DEBUG+ on this handler
+        # ? Stream handler (stdout) ?
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.DEBUG)              # DEBUG+ on console
         fmt = logging.Formatter(
             '%(asctime)s %(levelname)-8s %(name)s: %(message)s',
             datefmt='%H:%M:%S'
         )
         sh.setFormatter(fmt)
-
         root.addHandler(sh)
-        logging.debug("Logging configured")
+
+        # ? File handler (logs.log) ?
+        fh = logging.FileHandler(log_file, encoding='utf-8')
+        fh.setLevel(logging.DEBUG)              # DEBUG+ in file
+        # you can use the same formatter, or customize
+        fh.setFormatter(fmt)
+        root.addHandler(fh)
+
+        logging.debug("Logging configured; writing to stdout and %s", log_file)
+
 
     async def is_internet_available(self, timeout: float = 1.0) -> bool:
         """
