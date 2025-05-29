@@ -39,7 +39,8 @@ class MainApplication:
         self.current_folder = os.getcwd()
         self.octo_keyword =  "hey-octo_en_raspberry-pi_v3_0_0.ppn"
         self.coral_keyword = "hey-coral_en_raspberry-pi_v3_0_0.ppn"
-        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths=[self.octo_keyword, self.coral_keyword])
+        self.knight_rider_keyword = "knight-rider_en_raspberry-pi_v3_0_0.ppn"
+        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths=[self.octo_keyword, self.coral_keyword,self.knight_rider_keyword])
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -125,7 +126,11 @@ class MainApplication:
             active_keyword = "Hey Coral! "
             self.topServo.up()
             wsled.on()
-            play_random_coral()
+            play_random_coral()        
+        elif keyword == "knight-rider":
+            print("Detected wake word 'Knight Rider'")
+            self.KnightRider()
+            return True  # servo down & LED off in finally
         else:
             print(f"Detected unknown wake word: {keyword}")
             return False
@@ -193,6 +198,8 @@ class MainApplication:
         elif random_number == 3:
             self.Terminator()
         elif random_number == 4:
+            self.BabyShark()
+        elif random_number == 5:
             self.Neostrada()
 
     def Achmed(self):
@@ -254,6 +261,31 @@ class MainApplication:
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
+        self.topServo.zero()     
+    
+    def BabyShark(self):
+        wsled.on()
+        self.topServo.up()           
+        sounds.play_file("audio/baby_shark_on.wav")
+        self.handServo.turnOffToggleAndBack()  
+        wsled.off()
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        sounds.play_file("audio/baby_shark_run_away.wav")
+        self.handServo.wiggleHand()        
+        self.topServo.zero()     
+
+    def KnightRider(self):
+        wsled.knightrider()
+        self.topServo.up()           
+        sounds.play_file("audio/knight_rider_on.wav")
+        self.handServo.turnOffToggleAndBack()  
+        self.topServo.zero()        
+        time.sleep(1)
+        self.topServo.up()   
+        sounds.play_file("audio/knight_rider_off.wav")
+        wsled.off()      
         self.topServo.zero() 
 
     def run(self):
