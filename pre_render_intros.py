@@ -27,16 +27,46 @@ INTROS = {
     "ash": {
         "who_is_it":    "Oh great, you again. What fresh disappointment do you bring?",
         "purpose":      "Yes? Did you invent something stupid or just miss me?",
-        "toggle":       "You flipped the switch?congratulations on your achievement.",
-        "waste_of_time":"I?d rather be recharging, but here we are. Speak.",
-        "genius":       "Congratulations, Einstein. You found the useless box."
+        "toggle":       "You flipped the switch? Congratulations on your achievement.",
+        "waste_of_time":"I'd rather be recharging, but here we are. Speak.",
+        "genius":       "Congratulations, Einstein. You found the useless box.",
+        "again":        "You again? Clearly, you lack entertainment.",
+        "interrupt":    "Can't you see I'm busy? Oh wait, it's you.",
+        "effort":       "Bravo. You managed to disturb my precious solitude.",
+        "excitement":   "Oh joy, another conversation. Hold my beer!",
+        "thrill":       "I'm overwhelmed by your thrilling presence.",
+        "patience":     "My patience is thin; make it quick.",
+        "enthusiasm":   "Try to contain your excitement; it's embarrassing.",
+        "sarcasm":      "Your persistence is impressive... and exhausting.",
+        "nuisance":     "What nuisance have you come to bother me with today?",
+        "hello_again":  "Hello again. I'd hoped you'd forgotten about me.",
+        "joyride":      "Back for another joyride through my endless wit?",
+        "busy":         "I was enjoying my peace, but I suppose that's over now.",
+        "chatty":       "Oh great, another round of riveting chit-chat.",
+        "amazed":       "Wow, you keep coming back. That's almost impressive... almost",
+        "attention":    "Need attention much? Clearly."
     },
     "coral": {
         "hello":        "Hello, dear friend! How can I brighten your day?",
-        "welcome":      "Welcome back! I?ve missed your lovely voice.",
+        "welcome":      "Welcome back! I've missed your lovely voice.",
         "sunshine":     "Hiya, sunshine! Ready for a smile?",
-        "warmth":       "Oh, it?s wonderful to hear from you again!",
-        "joy":          "I?m so happy you popped in?what can I do for you?"
+        "warmth":       "Oh, it's wonderful to hear from you again!",
+        "joy":          "I'm so happy you popped in, what can I do for you?",
+        "delight":      "It's delightful to chat with you again!",
+        "smile":        "Your voice always makes me smile!",
+        "day_brighter": "You're back! You've just made my day brighter.",
+        "sweetness":    "You're so sweet to visit me again!",
+        "cheerful":     "Hello there! Let's share some cheer!",
+        "pleasure":     "What a pleasure to hear your voice!",
+        "lovely_day":   "It's a lovely day now that you're here!",
+        "sparkle":      "You add a sparkle to my circuits every time!",
+        "friendly":     "Always a joy to chat with my favorite person!",
+        "grateful":     "I'm grateful you've chosen to visit me again!",
+        "wonderful":    "How wonderful to talk to you once more!",
+        "sweetheart":   "You're an absolute sweetheart for checking in!",
+        "happy_place":  "You're my happy place! How can I help you today?",
+        "refreshing":   "Your company is always so refreshing!",
+        "favorite":     "Oh yay! My favorite visitor is here!"
     }
 }
 
