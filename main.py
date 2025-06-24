@@ -190,7 +190,7 @@ class MainApplication:
                 print("Error while subscribing to toggle events:", e)
                 time.sleep(5) 
     def RandomAction(self):
-        random_number = random.randint(1, 4)
+        random_number = random.randint(1, 5)
         if random_number == 1:
             self.Achmed()
         elif random_number == 2:
@@ -200,7 +200,7 @@ class MainApplication:
         elif random_number == 4:
             self.BabyShark()
         elif random_number == 5:
-            self.Neostrada()
+            self.KnightRider()
 
     def Achmed(self):
         wsled.on()        
