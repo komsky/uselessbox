@@ -61,21 +61,8 @@ class CobraDetector:
         aggressiveness = 1 if threshold < 0.4 else (2 if threshold < 0.7 else 3)
         vad = webrtcvad.Vad(aggressiveness)
         recorder = PvRecorder(frame_length=self.frame_length, device_index=self.device_index)
-        recorder.start()
 
         loop = asyncio.get_running_loop()
-
-        # The ReSpeaker emits a transient right after capture starts, and its noise
-        # floor alone can read as speech to webrtcvad. Discard the first ~240ms AND
-        # use those frames to measure ambient energy; speech then requires real
-        # acoustic energy above the ambient baseline as well as a VAD vote.
-        ambient = []
-        for _ in range(8):
-            warm = await loop.run_in_executor(None, recorder.read)
-            ambient.append(_rms(warm))
-        # Gate only the noise-floor-reads-as-speech pathology: adapt to quiet rooms but
-        # cap the floor so speech always passes even when warm-up caught a loud room.
-        energy_floor = min(max(200.0, 3.0 * (sum(ambient) / len(ambient))), 800.0)
         frame_time = self.frame_length / self.sample_rate
         max_silent = max(1, int(silence_timeout / frame_time))
         max_frames = int(self.max_utterance_s / frame_time)
@@ -88,6 +75,20 @@ class CobraDetector:
         silent_frames = 0
 
         try:
+            recorder.start()
+
+            # The ReSpeaker emits a transient right after capture starts, and its noise
+            # floor alone can read as speech to webrtcvad. Discard the first ~240ms AND
+            # use those frames to measure ambient energy; speech then requires real
+            # acoustic energy above the ambient baseline as well as a VAD vote.
+            ambient = []
+            for _ in range(8):
+                warm = await loop.run_in_executor(None, recorder.read)
+                ambient.append(_rms(warm))
+            # Gate only the noise-floor-reads-as-speech pathology: adapt to quiet rooms
+            # but cap the floor so speech passes even when warm-up caught a loud room.
+            energy_floor = min(max(200.0, 3.0 * (sum(ambient) / len(ambient))), 800.0)
+
             while True:
                 pcm_frame = await loop.run_in_executor(None, recorder.read)
                 raw = struct.pack("h" * len(pcm_frame), *pcm_frame)

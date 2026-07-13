@@ -102,8 +102,8 @@ class WakeWordDetector:
 
         self._model.reset()
         consecutive = [0] * len(self._model_keys)
-        recorder.start()
         try:
+            recorder.start()
             while True:
                 pcm = await loop.run_in_executor(None, recorder.read)
                 frame = np.asarray(pcm, dtype=np.int16)
