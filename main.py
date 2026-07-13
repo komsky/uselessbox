@@ -173,6 +173,7 @@ class MainApplication:
             print(f"ChatGPT response: {response}")
             #use tts for response
             wsled.speaking()
+            self.topServo.up()   # lid sagged during STT/GPT; re-raise so the reply comes from an open box
             if active_keyword == "Hey Octo! ":
                 await speak.speak_male(response)
             elif active_keyword == "Hey Coral! ":
