@@ -46,9 +46,12 @@ class MainApplication:
         self.knight_rider_keyword = os.path.join(_here, "models/knight_rider.tflite")
         wake_models = [k for k in (self.octo_keyword, self.coral_keyword, self.knight_rider_keyword)
                        if os.path.isfile(k)]
-        # knight-rider scores lower on real voice than octo/coral; run it more permissive
+        # Real (Polish-accented) voice scores lower than the synthetic training data,
+        # unevenly per phrase: coral detects best, octo sometimes, knight-rider worst.
+        # Per-keyword thresholds compensate; coral stays at the strict default.
         self.wakeword = WakeWordDetector(model_paths=wake_models,
-                                         thresholds={"knight-rider": 0.5})
+                                         thresholds={"hey-octo": 0.5,
+                                                     "knight-rider": 0.45})
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))

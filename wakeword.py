@@ -51,7 +51,10 @@ class WakeWordDetector:
         model_paths,
         threshold: float = 0.6,
         thresholds: dict = None,  # per-keyword overrides, e.g. {"knight-rider": 0.5}
-        trigger_frames: int = 2,
+        # openWakeWord scores often peak for a single 80ms frame; requiring
+        # consecutive frames suppresses soft/accented pronunciations, so the
+        # default is the standard single-frame trigger.
+        trigger_frames: int = 1,
         device_index: int = -1,
         inference_framework: str = "tflite",
         **_legacy_kwargs,  # tolerates old access_key/sensitivities call sites
