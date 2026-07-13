@@ -66,6 +66,19 @@ which stopped working when the free tier was discontinued in June 2026.)
   cannot keep up with real-time on this board (~87ms per 80ms frame). `wakeword.py`
   patches them to 3 threads (~62ms); override with the `OWW_THREADS` env var.
 
+# Servos
+
+The lid ("top") servo keeps the heavy lid raised with a periodic nudge — a 0.3s
+re-command every 8 seconds — instead of holding PWM continuously.
+
+**Do NOT enable pigpiod on this box.** gpiozero's docs recommend the pigpio pin
+factory to stop servo jitter, but pigpiod's DMA setup conflicts with the
+ReSpeaker's I2S interface here: the microphone dies ("Failed to read from
+device") and stays dead until a reboot, even after stopping the daemon. The
+code probes for pigpiod and would use it for a true jitter-free hold on
+hardware without this conflict, but on this build the nudge fallback is the
+intended mode.
+
 # Testing
 =======
 
