@@ -32,15 +32,19 @@ class MainApplication:
         
         logging.debug("Logging configured.Starting Main Application")
         self.args = args
-        self.detector = CobraDetector(access_key=os.getenv("PICOVOICE"))
+        self.detector = CobraDetector()
         self.ai_client =  OpenAIClient(api_key=os.getenv("CHATGPT_API_KEY"), model=os.getenv("GPT_MODEL_TYPE"), history_file="chatHistory.json")
         self.spinner = Halo(spinner='line') if not self.args.nospinner else None
         self.listening_for_command = False
         self.current_folder = os.getcwd()
-        self.octo_keyword =  "hey-octo_en_raspberry-pi_v3_0_0.ppn"
-        self.coral_keyword = "hey-coral_en_raspberry-pi_v3_0_0.ppn"
-        self.knight_rider_keyword = "knight-rider_en_raspberry-pi_v3_0_0.ppn"
-        self.wakeword = WakeWordDetector(access_key=os.getenv("PICOVOICE"),keyword_paths=[self.octo_keyword, self.coral_keyword,self.knight_rider_keyword])
+        # openWakeWord models (trained in wakeword-forge 2026-07); filename stems map to
+        # the legacy keyword names main.py routes on: hey_octo -> "hey-octo", etc.
+        self.octo_keyword =  "models/hey_octo.tflite"
+        self.coral_keyword = "models/hey_coral.tflite"
+        self.knight_rider_keyword = "models/knight_rider.tflite"
+        wake_models = [k for k in (self.octo_keyword, self.coral_keyword, self.knight_rider_keyword)
+                       if os.path.isfile(k)]
+        self.wakeword = WakeWordDetector(model_paths=wake_models)
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))

@@ -3,150 +3,129 @@ import argparse
 import asyncio
 from datetime import datetime
 
-import pvporcupine
+import numpy as np
+from openwakeword.model import Model
 from pvrecorder import PvRecorder
+
+# openWakeWord operates on 80ms frames at 16kHz
+FRAME_LENGTH = 1280
+SAMPLE_RATE = 16000
 
 
 class WakeWordDetector:
     """
-    Asynchronous Wake Word Detector using Picovoice Porcupine.
+    Asynchronous Wake Word Detector using openWakeWord (tflite).
+
+    Replaces the Picovoice Porcupine implementation (free tier discontinued
+    2026-06-30) with locally-trained openWakeWord models. The public contract
+    is unchanged: `await wait_for_wakeword()` returns (keyword_index, keyword),
+    where keyword matches the legacy Porcupine phrase names ("hey-octo",
+    "hey-coral", "knight-rider") derived from the model filename stem.
 
     Usage:
         detector = WakeWordDetector(
-            access_key="YOUR_ACCESS_KEY",
-            keyword_paths=["/path/to/keyword1.ppn", "/path/to/keyword2.ppn"],
-            sensitivities=[0.5, 0.6]
+            model_paths=["models/hey_octo.tflite", "models/hey_coral.tflite"],
+            threshold=0.6,
         )
         keyword_index, keyword = await detector.wait_for_wakeword()
-
-    Accepts a single string or list of paths for keyword_paths. Each call to
-    wait_for_wakeword() reinitializes resources and cleans up afterward.
     """
 
     def __init__(
         self,
-        access_key: str,
-        keyword_paths,
-        sensitivities: list = None,
-        library_path: str = None,
-        model_path: str = None,
+        model_paths,
+        threshold: float = 0.6,
+        trigger_frames: int = 2,
         device_index: int = -1,
+        inference_framework: str = "tflite",
+        **_legacy_kwargs,  # tolerates old access_key/sensitivities call sites
     ):
-        # Normalize keyword_paths to list
-        if isinstance(keyword_paths, str):
-            keyword_paths = [keyword_paths]
-        if not isinstance(keyword_paths, (list, tuple)) or not keyword_paths:
-            raise ValueError("`keyword_paths` must be a non-empty string or list of strings.")
+        if isinstance(model_paths, str):
+            model_paths = [model_paths]
+        if not isinstance(model_paths, (list, tuple)) or not model_paths:
+            raise ValueError("`model_paths` must be a non-empty string or list of strings.")
 
-        # Expand and validate files
-        validated_paths = []
-        for path in keyword_paths:
+        validated = []
+        for path in model_paths:
             p = os.path.expanduser(path)
             if not os.path.isfile(p):
-                raise OSError(f"Couldn't find keyword file at '{path}'.")
-            validated_paths.append(p)
-        self.keyword_paths = validated_paths
+                raise OSError(f"Couldn't find wake word model at '{path}'.")
+            validated.append(p)
+        self.model_paths = validated
 
-        # Sensitivities
-        if sensitivities is None:
-            sensitivities = [0.5] * len(self.keyword_paths)
-        if len(sensitivities) != len(self.keyword_paths):
-            raise ValueError("Number of sensitivities must match number of keywords.")
-        self.sensitivities = sensitivities
+        # "hey_octo.tflite" -> "hey-octo" (legacy Porcupine phrase names used by main.py)
+        self._keywords = [
+            os.path.splitext(os.path.basename(p))[0].replace("_", "-")
+            for p in self.model_paths
+        ]
+        # oww keys predictions by the raw filename stem
+        self._model_keys = [os.path.splitext(os.path.basename(p))[0] for p in self.model_paths]
 
-        self.access_key = access_key
-        self.library_path = library_path
-        self.model_path = model_path
+        self.threshold = threshold
+        self.trigger_frames = max(1, trigger_frames)
         self.device_index = device_index
 
-        # Precompute human-readable phrases from keyword paths
-        self._keywords = []
-        for path in self.keyword_paths:
-            name = os.path.basename(path).replace('.ppn', '').split('_')
-            phrase = ' '.join(name[:-6]) if len(name) > 6 else name[0]
-            self._keywords.append(phrase)
+        # The model is loaded once (a few seconds on a Pi Zero 2); the recorder is
+        # opened per wait call so the mic is released for the utterance capture.
+        self._model = Model(
+            wakeword_models=self.model_paths,
+            inference_framework=inference_framework,
+        )
+
+    @property
+    def keywords(self):
+        return list(self._keywords)
 
     async def wait_for_wakeword(self):
         """
-        Start listening and return upon detecting a wake word.
+        Listen until one of the wake words fires.
 
         Returns:
             (keyword_index: int, keyword: str)
-
-        Initializes its own Porcupine and recorder instances
-        and cleans up afterward, so it can run in a loop.
         """
-        # Initialize Porcupine and recorder
-        porcupine = pvporcupine.create(
-            access_key=self.access_key,
-            keyword_paths=self.keyword_paths,
-            sensitivities=self.sensitivities,
-            library_path=self.library_path,
-            model_path=self.model_path,
-        )
-        recorder = PvRecorder(
-            frame_length=porcupine.frame_length,
-            device_index=self.device_index
-        )
-
+        recorder = PvRecorder(frame_length=FRAME_LENGTH, device_index=self.device_index)
         loop = asyncio.get_running_loop()
-        recorder.start()
 
+        self._model.reset()
+        consecutive = [0] * len(self._model_keys)
+        recorder.start()
         try:
             while True:
                 pcm = await loop.run_in_executor(None, recorder.read)
-                result = await loop.run_in_executor(None, porcupine.process, pcm)
-                if result >= 0:
-                    return result, self._keywords[result]
+                frame = np.asarray(pcm, dtype=np.int16)
+                scores = await loop.run_in_executor(None, self._model.predict, frame)
+                for i, key in enumerate(self._model_keys):
+                    if scores.get(key, 0.0) >= self.threshold:
+                        consecutive[i] += 1
+                        if consecutive[i] >= self.trigger_frames:
+                            return i, self._keywords[i]
+                    else:
+                        consecutive[i] = 0
         finally:
             recorder.delete()
-            porcupine.delete()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run WakeWordDetector standalone.")
     parser.add_argument(
-        '--access_key', required=True,
-        help='Picovoice AccessKey from https://console.picovoice.ai/'
+        '--model_paths', required=True, nargs='+',
+        help='Paths to openWakeWord .tflite model files'
     )
-    parser.add_argument(
-        '--keyword_paths', required=True, nargs='+',
-        help='Paths to Porcupine keyword (.ppn) files'
-    )
-    parser.add_argument(
-        '--sensitivities', nargs='+', type=float,
-        help='Sensitivities for each keyword (0 to 1). Defaults to 0.5 each.'
-    )
-    parser.add_argument(
-        '--library_path', help='Absolute path to Porcupine dynamic library.'
-    )
-    parser.add_argument(
-        '--model_path', help='Absolute path to model parameters file.'
-    )
+    parser.add_argument('--threshold', type=float, default=0.6)
     parser.add_argument(
         '--audio_device_index', type=int, default=-1,
         help='Index of input audio device. Default: -1 (system default).'
     )
-
     args = parser.parse_args()
 
     detector = WakeWordDetector(
-        access_key=args.access_key,
-        keyword_paths=args.keyword_paths,
-        sensitivities=args.sensitivities,
-        library_path=args.library_path,
-        model_path=args.model_path,
-        device_index=args.audio_device_index
+        model_paths=args.model_paths,
+        threshold=args.threshold,
+        device_index=args.audio_device_index,
     )
-
-    print("Listening for wake word... Press Ctrl+C to exit.")
-    try:
+    print(f"Listening for {detector.keywords} ... Ctrl+C to stop")
+    while True:
         index, keyword = asyncio.run(detector.wait_for_wakeword())
-        print(f"[{datetime.now()}] Detected '{keyword}' (index: {index})")
-    except KeyboardInterrupt:
-        print("Interrupted by user.")
-    except Exception as e:
-        print(f"Error: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] detected '{keyword}' (index {index})")
 
 
 if __name__ == '__main__':
