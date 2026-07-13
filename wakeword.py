@@ -4,6 +4,22 @@ import asyncio
 from datetime import datetime
 
 import numpy as np
+
+# openWakeWord hardcodes num_threads=1 when building its tflite interpreters.
+# On the Pi Zero 2 W that's ~89 ms per 80 ms frame (too slow); 3 threads brings
+# it to ~63 ms (real-time with headroom). Patch the interpreter ctor before
+# importing the Model so every interpreter oWW builds is multi-threaded.
+_OWW_THREADS = int(os.getenv("OWW_THREADS", "3"))
+try:
+    import tflite_runtime.interpreter as _tflite
+    _orig_interpreter = _tflite.Interpreter
+    def _threaded_interpreter(*args, **kwargs):
+        kwargs["num_threads"] = _OWW_THREADS
+        return _orig_interpreter(*args, **kwargs)
+    _tflite.Interpreter = _threaded_interpreter
+except ImportError:
+    pass  # off-Pi (no tflite_runtime): openwakeword falls back to its own backend
+
 from openwakeword.model import Model
 from pvrecorder import PvRecorder
 
@@ -52,13 +68,12 @@ class WakeWordDetector:
             validated.append(p)
         self.model_paths = validated
 
-        # "hey_octo.tflite" -> "hey-octo" (legacy Porcupine phrase names used by main.py)
-        self._keywords = [
-            os.path.splitext(os.path.basename(p))[0].replace("_", "-")
-            for p in self.model_paths
+        # "hey_octo.tflite" -> "hey-octo" (legacy Porcupine phrase names used by main.py).
+        # rsplit, not splitext: built-in oww model names carry dots ("hey_jarvis_v0.1").
+        self._model_keys = [
+            os.path.basename(p).rsplit(".", 1)[0] for p in self.model_paths
         ]
-        # oww keys predictions by the raw filename stem
-        self._model_keys = [os.path.splitext(os.path.basename(p))[0] for p in self.model_paths]
+        self._keywords = [k.replace("_", "-") for k in self._model_keys]
 
         self.threshold = threshold
         self.trigger_frames = max(1, trigger_frames)
