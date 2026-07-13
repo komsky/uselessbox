@@ -49,11 +49,15 @@ class CobraDetector:
     async def wait_for_utterance(
         self,
         threshold: float = 0.5,
-        silence_timeout: float = 1.0
+        silence_timeout: float = 1.0,
+        onset_timeout: float = 8.0,
     ) -> bytes:
         """
         Listen for speech: start when voice activity is detected, stop after
-        silence_timeout seconds without speech. Returns raw PCM bytes.
+        silence_timeout seconds without speech. Returns raw PCM bytes, or b""
+        when no speech started within onset_timeout seconds (the caller must
+        treat an empty result as "nothing was said" and move on — blocking
+        forever here wedges the whole device with the servo up).
 
         `threshold` maps to webrtcvad aggressiveness: <0.4 -> 1 (permissive),
         <0.7 -> 2, else 3 (strict).
@@ -66,9 +70,11 @@ class CobraDetector:
         frame_time = self.frame_length / self.sample_rate
         max_silent = max(1, int(silence_timeout / frame_time))
         max_frames = int(self.max_utterance_s / frame_time)
+        max_onset_wait = max(1, int(onset_timeout / frame_time))
         start_votes_needed = 2  # 60ms of speech to trigger (debounces clicks)
 
-        preroll = deque(maxlen=int(0.3 / frame_time))
+        preroll = deque(maxlen=round(0.3 / frame_time))
+        onset_waited = 0
         frames = []
         started = False
         speech_votes = 0
@@ -102,6 +108,10 @@ class CobraDetector:
                         started = True
                         frames.extend(preroll)
                         preroll.clear()
+                    else:
+                        onset_waited += 1
+                        if onset_waited >= max_onset_wait:
+                            return b""
                 else:
                     frames.append(raw)
                     if is_speech:

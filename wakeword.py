@@ -69,7 +69,8 @@ class WakeWordDetector:
         self.model_paths = validated
 
         # "hey_octo.tflite" -> "hey-octo" (legacy Porcupine phrase names used by main.py).
-        # rsplit, not splitext: built-in oww model names carry dots ("hey_jarvis_v0.1").
+        # rsplit strips only the final extension; openWakeWord derives its predict()
+        # keys the same way, so scores.get(key) below stays in sync.
         self._model_keys = [
             os.path.basename(p).rsplit(".", 1)[0] for p in self.model_paths
         ]

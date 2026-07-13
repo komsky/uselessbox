@@ -39,9 +39,11 @@ class MainApplication:
         self.current_folder = os.getcwd()
         # openWakeWord models (trained in wakeword-forge 2026-07); filename stems map to
         # the legacy keyword names main.py routes on: hey_octo -> "hey-octo", etc.
-        self.octo_keyword =  "models/hey_octo.tflite"
-        self.coral_keyword = "models/hey_coral.tflite"
-        self.knight_rider_keyword = "models/knight_rider.tflite"
+        # Anchored to this file, not the CWD, so the systemd unit can start anywhere.
+        _here = os.path.dirname(os.path.abspath(__file__))
+        self.octo_keyword =  os.path.join(_here, "models/hey_octo.tflite")
+        self.coral_keyword = os.path.join(_here, "models/hey_coral.tflite")
+        self.knight_rider_keyword = os.path.join(_here, "models/knight_rider.tflite")
         wake_models = [k for k in (self.octo_keyword, self.coral_keyword, self.knight_rider_keyword)
                        if os.path.isfile(k)]
         self.wakeword = WakeWordDetector(model_paths=wake_models)
@@ -151,6 +153,9 @@ class MainApplication:
             wsled.listening()
             print(f"Waiting for utterance ")
             pcm = await self.detector.wait_for_utterance()
+            if not pcm:
+                print("No speech after wake word — going back to sleep.")
+                return True  # servo down & LED off in finally
 
             self.detector.save_wav(pcm, wav_path)
             print(f"Saved utterance to {wav_path}")
