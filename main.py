@@ -218,6 +218,7 @@ class MainApplication:
         wsled.on()        
         self.topServo.up()   
         sounds.play_file("audio/ahmed/ahmed_silence_I_kill_you.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
@@ -226,6 +227,7 @@ class MainApplication:
         time.sleep(1)
         self.topServo.up()   
         sounds.play_file("audio/ahmed/achmed-stop_touching_me_i_kill_you.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.wiggleHand()
         self.topServo.zero()    
         
@@ -233,6 +235,7 @@ class MainApplication:
         wsled.on()
         self.topServo.up()   
         sounds.play_file("audio/windows_startup.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.handServo.zero()
@@ -249,6 +252,7 @@ class MainApplication:
         sounds.play_file("audio/Soundboard/Arnold_Terminator/im_a_cybernetic_organism_living_tissue_over_metal_endoskeleton.wav")
         self.topServo.up()   
         sounds.play_file("audio/Soundboard/Arnold_Terminator/hasta_la_vista_baby.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         sounds.play_file("audio/Soundboard/Arnold_Terminator/humans-inevitably-die.wav")
@@ -256,6 +260,7 @@ class MainApplication:
         time.sleep(1)
         self.topServo.up()   
         sounds.play_file("audio/Soundboard/Arnold_Terminator/talk_to_the_hand.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
         self.handServo.wiggleHand()        
@@ -265,6 +270,7 @@ class MainApplication:
         wsled.on()
         self.topServo.up()           
         sounds.play_file("audio/long/neostrada_serce_i_rozum.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.turnOffToggleAndBack()  
         wsled.off()
         self.topServo.zero()        
@@ -279,6 +285,7 @@ class MainApplication:
         wsled.knightrider()
         self.topServo.up()           
         sounds.play_file("audio/knight_rider_on.wav")
+        self.topServo.up()   # lid sagged during the sound; re-raise before the hand moves
         self.handServo.turnOffToggleAndBack()  
         self.topServo.zero()        
         time.sleep(1)
