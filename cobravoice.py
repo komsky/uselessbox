@@ -7,8 +7,14 @@ import asyncio
 from collections import deque
 from datetime import datetime
 
+import math
+
 import webrtcvad
 from pvrecorder import PvRecorder
+
+
+def _rms(frame) -> float:
+    return math.sqrt(sum(s * s for s in frame) / len(frame))
 
 
 class CobraDetector:
@@ -58,6 +64,18 @@ class CobraDetector:
         recorder.start()
 
         loop = asyncio.get_running_loop()
+
+        # The ReSpeaker emits a transient right after capture starts, and its noise
+        # floor alone can read as speech to webrtcvad. Discard the first ~240ms AND
+        # use those frames to measure ambient energy; speech then requires real
+        # acoustic energy above the ambient baseline as well as a VAD vote.
+        ambient = []
+        for _ in range(8):
+            warm = await loop.run_in_executor(None, recorder.read)
+            ambient.append(_rms(warm))
+        # Gate only the noise-floor-reads-as-speech pathology: adapt to quiet rooms but
+        # cap the floor so speech always passes even when warm-up caught a loud room.
+        energy_floor = min(max(200.0, 3.0 * (sum(ambient) / len(ambient))), 800.0)
         frame_time = self.frame_length / self.sample_rate
         max_silent = max(1, int(silence_timeout / frame_time))
         max_frames = int(self.max_utterance_s / frame_time)
@@ -73,7 +91,8 @@ class CobraDetector:
             while True:
                 pcm_frame = await loop.run_in_executor(None, recorder.read)
                 raw = struct.pack("h" * len(pcm_frame), *pcm_frame)
-                is_speech = vad.is_speech(raw, self.sample_rate)
+                is_speech = (vad.is_speech(raw, self.sample_rate)
+                             and _rms(pcm_frame) >= energy_floor)
 
                 if not started:
                     preroll.append(raw)
