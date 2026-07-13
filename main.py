@@ -199,7 +199,7 @@ class MainApplication:
                 print("Error while subscribing to toggle events:", e)
                 time.sleep(5) 
     def RandomAction(self):
-        random_number = random.randint(1, 5)
+        random_number = random.randint(1, 4)
         if random_number == 1:
             self.Achmed()
         elif random_number == 2:
@@ -207,8 +207,6 @@ class MainApplication:
         elif random_number == 3:
             self.Terminator()
         elif random_number == 4:
-            self.BabyShark()
-        elif random_number == 5:
             self.KnightRider()
 
     def Achmed(self):
@@ -272,19 +270,6 @@ class MainApplication:
         self.handServo.wiggleHand()        
         self.topServo.zero()     
     
-    def BabyShark(self):
-        wsled.on()
-        self.topServo.up()           
-        sounds.play_file("audio/baby_shark_on.wav")
-        self.handServo.turnOffToggleAndBack()  
-        wsled.off()
-        self.topServo.zero()        
-        time.sleep(1)
-        self.topServo.up()   
-        sounds.play_file("audio/baby_shark_run_away.wav")
-        self.handServo.wiggleHand()        
-        self.topServo.zero()     
-
     def KnightRider(self):
         wsled.knightrider()
         self.topServo.up()           

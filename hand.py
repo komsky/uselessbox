@@ -3,6 +3,8 @@
 from gpiozero import AngularServo
 from time import sleep
 
+from servo_base import get_pin_factory
+
 HAND_ANGLE = 65
 class HandServo:
     def __init__(
@@ -23,6 +25,9 @@ class HandServo:
         self.frame_width = frame_width
 
         self.servo = None
+        # Hardware-timed pulses via pigpio when available (smoother motion);
+        # the hand always detaches after acting, so no hold logic here.
+        self._pin_factory = get_pin_factory()
 
     def StartServo(self) -> AngularServo:
         if self.servo is None:
@@ -32,7 +37,8 @@ class HandServo:
                 max_angle=self.max_angle,
                 min_pulse_width=self.min_pulse_width,
                 max_pulse_width=self.max_pulse_width,
-                frame_width=self.frame_width
+                frame_width=self.frame_width,
+                pin_factory=self._pin_factory
             )
         return self.servo
 

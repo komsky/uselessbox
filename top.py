@@ -2,6 +2,8 @@
 from gpiozero import AngularServo
 from time import sleep
 
+from servo_base import get_pin_factory
+
 TOP_ARC = 40
 
 class TopServo:
@@ -23,6 +25,11 @@ class TopServo:
         self.frame_width = frame_width
 
         self.servo = None
+        # pigpio gives hardware-timed pulses: a held servo doesn't jitter. Without it
+        # we must not hold (software PWM jitters), so we fall back to detach-after-move
+        # and the heavy lid sags a little — sag beats jitter.
+        self._pin_factory = get_pin_factory()
+        self._can_hold = self._pin_factory is not None
 
     def StartServo(self) -> AngularServo:
         if self.servo is None:
@@ -32,30 +39,33 @@ class TopServo:
                 max_angle=self.max_angle,
                 min_pulse_width=self.min_pulse_width,
                 max_pulse_width=self.max_pulse_width,
-                frame_width=self.frame_width
+                frame_width=self.frame_width,
+                pin_factory=self._pin_factory
             )
         return self.servo
 
-    def arc(self, angle: float) -> None:
-        servo = self.StartServo()                # <-- use self.StartServo()
+    def arc(self, angle: float, hold: bool = False) -> None:
+        servo = self.StartServo()
         if not (servo.min_angle <= angle <= servo.max_angle):
             raise ValueError(f"Angle must be between {servo.min_angle} and {servo.max_angle}")
         servo.angle = angle
-        sleep(0.2) 
-        servo.detach() 
+        if hold and self._can_hold:
+            sleep(0.2)  # let it reach the target; stays attached, keeps torque
+        else:
+            sleep(0.4)  # settle fully before losing torque
+            servo.detach()
 
     def up(self) -> None:
-        """Opening the box"""
-        self.arc(TOP_ARC)    
+        """Open the box and keep holding the heavy lid up."""
+        self.arc(TOP_ARC, hold=True)
+
     def down(self) -> None:
         """Closing the box"""
         self.zero()
 
     def zero(self) -> None:
-        """Move to min_angle and detach."""
+        """Move to min_angle and detach — a closed lid needs no torque."""
         self.arc(self.min_angle)
-        sleep(0.2)  #ensure the servo has time to move
-        self.servo.detach()
 
     def cleanup(self) -> None:
         """Release the GPIO pin and stop PWM."""
