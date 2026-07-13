@@ -49,6 +49,23 @@ Now, run
 pip install -r requirements.txt
 ```
 
+# Wake words
+
+Wake-word detection runs fully on-device with [openWakeWord](https://github.com/dscripka/openWakeWord)
+— no cloud account or API key. (Earlier versions used Picovoice Porcupine/Cobra,
+which stopped working when the free tier was discontinued in June 2026.)
+
+- Models live in `models/*.tflite`; the filename stem becomes the keyword the app
+  routes on (`hey_octo.tflite` → "hey-octo"). Drop a new model in, reference it in
+  `main.py`, restart the service.
+- Custom models were trained from synthetic TTS samples; any phrase can be trained
+  the same way with openWakeWord's training pipeline.
+- Utterance capture (what you say after the wake word) uses webrtcvad with an
+  energy gate tuned for the ReSpeaker's start transient and noise floor.
+- Pi Zero 2 note: openWakeWord's tflite interpreters default to one thread, which
+  cannot keep up with real-time on this board (~87ms per 80ms frame). `wakeword.py`
+  patches them to 3 threads (~62ms); override with the `OWW_THREADS` env var.
+
 # Testing
 =======
 
