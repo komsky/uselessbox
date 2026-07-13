@@ -111,11 +111,13 @@ class TopServo:
             if not hold:
                 self._hw.detach()
             return
+        # Software-PWM hold is BANNED: field-tested on the loaded Zero 2 it shakes the
+        # box violently ("earthquake", nearly off the table). Until the servo wire is
+        # on GPIO12 (hardware PWM), we always detach and accept the lid sag.
         servo = self.StartServo()
         servo.angle = angle
         sleep(0.4)  # reach the target / settle
-        if not hold:
-            servo.detach()
+        servo.detach()
 
     def up(self) -> None:
         """Open the box and hold the heavy lid up until down()/zero()."""
