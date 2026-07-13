@@ -1,10 +1,57 @@
 #!/usr/bin/env python3
+import os
+
 from gpiozero import AngularServo
 from time import sleep
 
 from servo_base import get_pin_factory
 
 TOP_ARC = 40
+
+# Hardware-PWM mode: created once the servo signal wire is moved to GPIO12 (the
+# ReSpeaker Grove socket) and `dtoverlay=pwm,pin=12,func=4` is booted. Hardware
+# pulses are timer-generated — a held servo is rock steady (software PWM on the
+# loaded Zero 2 shakes the lid violently), and the PWM peripheral is independent
+# of the I2S audio, unlike pigpiod's DMA.
+HW_PWM_FLAG = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".top_hw_pwm")
+
+
+class _HardwarePWMBackend:
+    """Top-servo driver on PWM0/GPIO12 via the kernel's hardware PWM."""
+
+    def __init__(self, min_pulse_s=0.0005, max_pulse_s=0.0025,
+                 min_angle=0.0, max_angle=180.0, frame_s=0.02):
+        from rpi_hardware_pwm import HardwarePWM
+        self._min_pulse_s = min_pulse_s
+        self._max_pulse_s = max_pulse_s
+        self._min_angle = min_angle
+        self._max_angle = max_angle
+        self._frame_s = frame_s
+        chip = int(os.getenv("TOP_HW_PWM_CHIP", "0"))
+        self._pwm = HardwarePWM(pwm_channel=0, hz=round(1 / frame_s), chip=chip)
+        self._running = False
+
+    def _duty_for(self, angle: float) -> float:
+        span = self._max_angle - self._min_angle
+        pulse = self._min_pulse_s + ((angle - self._min_angle) / span) * (
+            self._max_pulse_s - self._min_pulse_s)
+        return pulse / self._frame_s * 100.0
+
+    def set_angle(self, angle: float) -> None:
+        duty = self._duty_for(angle)
+        if self._running:
+            self._pwm.change_duty_cycle(duty)
+        else:
+            self._pwm.start(duty)
+            self._running = True
+
+    def detach(self) -> None:
+        if self._running:
+            self._pwm.stop()
+            self._running = False
+
+    def close(self) -> None:
+        self.detach()
 
 class TopServo:
     def __init__(
@@ -26,13 +73,21 @@ class TopServo:
 
         self.servo = None
         # The heavy lid falls the moment the servo detaches (field-tested: it nearly
-        # closes itself and blocks the hand), so the lid is HELD ATTACHED for the whole
-        # open phase and detached only after closing. pigpio would make the hold
-        # hardware-timed (zero jitter) but must NOT run on this box — its DMA setup
-        # wedges the ReSpeaker's I2S audio until reboot — so the hold uses the default
-        # pin factory. A periodic-nudge scheme was tried instead and rejected: the lid
-        # sagged shut between nudges and the extra motion wrecked routine choreography.
-        self._pin_factory = get_pin_factory()
+        # closes itself and blocks the hand), so the lid is HELD for the whole open
+        # phase and released only after closing. The hold source, best first:
+        #   1. Hardware PWM on GPIO12 (flag file present, wire moved) — zero jitter.
+        #   2. pigpio, if ever available (NOT on this box: its DMA wedges I2S audio).
+        #   3. Default software PWM — holds, but shakes hard under CPU load.
+        self._hw = None
+        if os.path.exists(HW_PWM_FLAG):
+            try:
+                self._hw = _HardwarePWMBackend(
+                    min_pulse_s=min_pulse_width, max_pulse_s=max_pulse_width,
+                    min_angle=min_angle, max_angle=max_angle, frame_s=frame_width)
+                print("top: hardware PWM backend active (GPIO12)")
+            except Exception as exc:
+                print(f"top: hardware PWM flagged but unavailable ({exc}); using gpiozero")
+        self._pin_factory = get_pin_factory() if self._hw is None else None
 
     def StartServo(self) -> AngularServo:
         if self.servo is None:
@@ -48,14 +103,18 @@ class TopServo:
         return self.servo
 
     def arc(self, angle: float, hold: bool = False) -> None:
+        if not (self.min_angle <= angle <= self.max_angle):
+            raise ValueError(f"Angle must be between {self.min_angle} and {self.max_angle}")
+        if self._hw is not None:
+            self._hw.set_angle(angle)
+            sleep(0.4)  # reach the target
+            if not hold:
+                self._hw.detach()
+            return
         servo = self.StartServo()
-        if not (servo.min_angle <= angle <= servo.max_angle):
-            raise ValueError(f"Angle must be between {servo.min_angle} and {servo.max_angle}")
         servo.angle = angle
-        if hold:
-            sleep(0.4)  # reach the target; stay attached, keep torque on the lid
-        else:
-            sleep(0.4)  # settle fully before losing torque
+        sleep(0.4)  # reach the target / settle
+        if not hold:
             servo.detach()
 
     def up(self) -> None:
@@ -72,6 +131,8 @@ class TopServo:
 
     def cleanup(self) -> None:
         """Release the GPIO pin and stop PWM."""
+        if self._hw is not None:
+            self._hw.close()
         if self.servo is not None:
             self.servo.close()
 
