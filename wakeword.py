@@ -50,6 +50,7 @@ class WakeWordDetector:
         self,
         model_paths,
         threshold: float = 0.6,
+        thresholds: dict = None,  # per-keyword overrides, e.g. {"knight-rider": 0.5}
         trigger_frames: int = 2,
         device_index: int = -1,
         inference_framework: str = "tflite",
@@ -77,6 +78,10 @@ class WakeWordDetector:
         self._keywords = [k.replace("_", "-") for k in self._model_keys]
 
         self.threshold = threshold
+        thresholds = thresholds or {}
+        self._thresholds = [
+            thresholds.get(kw, threshold) for kw in self._keywords
+        ]
         self.trigger_frames = max(1, trigger_frames)
         self.device_index = device_index
 
@@ -110,7 +115,7 @@ class WakeWordDetector:
                 frame = np.asarray(pcm, dtype=np.int16)
                 scores = await loop.run_in_executor(None, self._model.predict, frame)
                 for i, key in enumerate(self._model_keys):
-                    if scores.get(key, 0.0) >= self.threshold:
+                    if scores.get(key, 0.0) >= self._thresholds[i]:
                         consecutive[i] += 1
                         if consecutive[i] >= self.trigger_frames:
                             return i, self._keywords[i]

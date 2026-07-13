@@ -46,7 +46,9 @@ class MainApplication:
         self.knight_rider_keyword = os.path.join(_here, "models/knight_rider.tflite")
         wake_models = [k for k in (self.octo_keyword, self.coral_keyword, self.knight_rider_keyword)
                        if os.path.isfile(k)]
-        self.wakeword = WakeWordDetector(model_paths=wake_models)
+        # knight-rider scores lower on real voice than octo/coral; run it more permissive
+        self.wakeword = WakeWordDetector(model_paths=wake_models,
+                                         thresholds={"knight-rider": 0.5})
         self.handServo = HandServo()
         self.topServo = TopServo()
         self.openAiClient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
